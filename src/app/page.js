@@ -12,6 +12,7 @@ export default function LegalVietPage() {
   const [lang, setLang] = useState('ko');
   const [user, setUser] = useState(null);
 
+  // 분석 요청 공통 로직 (기존 로직 유지)
   const performAnalysis = async (promptText, isDoc) => {
     setLoading(true);
     const tempUserId = user?.id || "user_123"; 
@@ -49,23 +50,33 @@ export default function LegalVietPage() {
     }
   };
 
-  const handleSubmit = (e) => { e.preventDefault(); performAnalysis(content, false); };
+  const handleSubmit = (e) => { 
+    e.preventDefault(); 
+    if (!content.trim() && !file) return;
+    performAnalysis(content, false); 
+  };
+  
   const handleGenerateDocument = (lastAnalysis) => {
     const docPrompt = `아래 분석 내용을 바탕으로 관공서 제출용 베트남어 공식 서류 초안을 작성해줘:\n\n${lastAnalysis}`;
     performAnalysis(docPrompt, true);
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '0 0 100px 0' }}>
-      {/* 1. 상단 글로벌 네비게이션 (더 넓게 확장) */}
+    <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '0 0 100px 0', fontFamily: 'Pretendard, -apple-system, sans-serif' }}>
+      
+      {/* 글로벌 네비게이션: 로그인/회원가입/마이페이지 이동 버튼 */}
       <nav style={{ 
         background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '0 40px', height: '70px',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 100
       }}>
-        <div style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div 
+          onClick={() => router.push('/')}
+          style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+        >
           <span style={{ background: '#da251d', color: '#fff', padding: '2px 8px', borderRadius: '4px' }}>L</span>
           LegalViet
         </div>
+        
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
           <select 
             onChange={(e) => setLang(e.target.value)} 
@@ -84,7 +95,6 @@ export default function LegalVietPage() {
       <div style={{ maxWidth: '1200px', margin: '40px auto', padding: '0 20px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '30px' }}>
           
-          {/* 왼쪽: 메인 작업 영역 */}
           <main>
             <header style={{ marginBottom: '30px' }}>
               <h1 style={{ fontSize: '36px', fontWeight: '800', color: '#0f172a', marginBottom: '10px' }}>
@@ -100,7 +110,7 @@ export default function LegalVietPage() {
               {chatHistory.length === 0 && (
                 <div style={{ padding: '80px 0', textAlign: 'center', background: '#fff', borderRadius: '24px', border: '2px dashed #e2e8f0' }}>
                   <div style={{ fontSize: '40px', marginBottom: '10px' }}>🇻🇳</div>
-                  <p style={{ color: '#94a3b8' }}>아직 분석 내역이 없습니다. 아래에서 입력을 시작하세요.</p>
+                  <p style={{ color: '#94a3b8' }}>아직 분석 내역이 없습니다. 아래에서 내용을 입력하여 시작하세요.</p>
                 </div>
               )}
               {chatHistory.map((chat, index) => (
@@ -118,7 +128,7 @@ export default function LegalVietPage() {
                       {chat.role === 'user' ? 'U' : 'L'}
                     </div>
                     <span style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b' }}>
-                      {chat.role === 'user' ? '사용자 질문' : (chat.role === 'document' ? '베트남어 서류 초안' : 'LegalViet AI 분석')}
+                      {chat.role === 'user' ? '사용자 질문' : (chat.role === 'document' ? '베트남어 서류 초안' : 'LegalViet AI 분석 결과')}
                     </span>
                   </div>
                   <div style={{ whiteSpace: 'pre-wrap', fontSize: '16px', lineHeight: '1.8', color: '#334155' }}>{chat.text}</div>
@@ -158,7 +168,7 @@ export default function LegalVietPage() {
             </form>
           </main>
 
-          {/* 오른쪽: 사이드바 (정보 섹션) */}
+          {/* 사이드바 */}
           <aside>
             <div style={{ position: 'sticky', top: '110px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ background: '#0f172a', color: '#fff', padding: '25px', borderRadius: '24px' }}>
@@ -185,7 +195,25 @@ export default function LegalVietPage() {
         </div>
       </div>
 
-      {/* 구독 모달 (생략 - 기존과 동일) */}
+      {/* 구독 모달 */}
+      {showSubscriptionModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'white', padding: '40px', borderRadius: '24px', maxWidth: '400px', width: '90%', textAlign: 'center' }}>
+            <div style={{ fontSize: '40px', marginBottom: '20px' }}>🚀</div>
+            <h2 style={{ fontSize: '22px', fontWeight: '800', marginBottom: '12px' }}>무료 체험 완료</h2>
+            <p style={{ color: '#64748b', lineHeight: '1.6', marginBottom: '24px', fontSize: '15px' }}>
+              지속적인 서류 분석과 대화 내역 저장을 위해<br/>구독 서비스를 이용해 보세요.
+            </p>
+            <button 
+              onClick={() => window.open('https://pf.kakao.com/...', '_blank')} 
+              style={{ width: '100%', padding: '14px', background: '#da251d', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', marginBottom: '12px' }}
+            >
+              구독 문의 (카카오톡)
+            </button>
+            <button onClick={() => setShowSubscriptionModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>닫기</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
