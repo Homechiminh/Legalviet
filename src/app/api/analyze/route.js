@@ -1,76 +1,58 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from '@supabase/supabase-js';
-import { Resend } from 'resend';
-
-// [체크] 서버가 시작될 때 API 키가 있는지 로그로 확인 (나중에 지우세요)
-if (!process.env.GEMINI_API_KEY) console.error("GEMINI_API_KEY가 없습니다!");
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req) {
   try {
-    const formData = await req.formData();
-    const prompt = formData.get('prompt') || ""; // prompt가 없을 경우 대비
-    const file = formData.get('file');
+    const { prompt, userId, isAdmin } = await req.json();
 
-    // 모델 설정 (명칭을 더 확실한 최신 버전으로 사용)
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-3.1-pro-preview" // 또는 "gemini-1.5-flash"
-    });
+    // 1. 유저 상태 확인 (관리자가 아닐 때만 횟수 체크)
+    if (!isAdmin) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('chat_count, is_subscribed')
+        .eq('id', userId)
+        .single();
 
-    let parts = [{ text: prompt }];
-
-    // 파일 처리
-    if (file && file.size > 0) {
-      const buffer = Buffer.from(await file.arrayBuffer());
-      parts.push({
-        inlineData: {
-          data: buffer.toString('base64'),
-          mimeType: file.type
-        }
-      });
+      if (profile?.chat_count >= 1 && !profile?.is_subscribed) {
+        return new Response(JSON.stringify({ 
+          error: "LIMIT_REACHED", 
+          message: "무료 분석 1회를 사용하셨습니다. 지속적인 이용을 위해 구독이 필요합니다." 
+        }), { status: 403 });
+      }
     }
 
-    // [중요 수정] AI 분석 실행 방식을 더 명확하게 변경
-    // systemInstruction 대신 generationConfig 등을 사용하는 더 안전한 방식
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: parts,
-        },
-      ],
-    });
-    
-    const response = await result.response;
-    const responseText = response.text();
-
-    // Supabase DB 저장
-    const { data: caseData, error: dbError } = await supabase
+    // 2. 대화 적립 (최근 5개 내역 불러오기)
+    const { data: history } = await supabase
       .from('legal_cases')
-      .insert([{
-        content: prompt,
-        analysis: responseText,
-        status: 'open'
-      }])
-      .select()
-      .single();
+      .select('content, analysis')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(5);
 
-    if (dbError) {
-      console.error("Supabase Error:", dbError);
-      // DB 에러가 나더라도 AI 답변은 전달하도록 처리하거나 에러를 던짐
-    }
-
-    return new Response(JSON.stringify({ success: true, analysis: responseText }), { 
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.0-flash",
+      systemInstruction: "당신은 베트남 법률 서류 및 상황 분석 어시스턴트입니다. 직접적인 법률 판단이 아닌, 제출된 서류의 요약 및 상황 분석 서포트 역할을 수행하며 마지막엔 항상 법적 효력이 없음을 명시하세요."
     });
+
+    let chatHistory = history ? history.reverse().map(h => ([
+      { role: "user", parts: [{ text: h.content }] },
+      { role: "model", parts: [{ text: h.analysis }] }
+    ])).flat() : [];
+
+    const chat = model.startChat({ history: chatHistory });
+    const result = await chat.sendMessage(prompt);
+    const responseText = result.response.text();
+
+    // 3. 결과 저장 및 횟수 증가
+    await supabase.from('legal_cases').insert([{ user_id: userId, content: prompt, analysis: responseText }]);
+    if (!isAdmin) await supabase.rpc('increment_chat_count', { user_id: userId });
+
+    return new Response(JSON.stringify({ analysis: responseText }), { status: 200 });
 
   } catch (error) {
-    console.error("Detailed Error:", error);
-    // 404 에러 시 어떤 주소를 호출하려 했는지 등 구체적 에러 메시지 반환
-    return new Response(JSON.stringify({ error: error.message, stack: error.stack }), { status: 500 });
+    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 }
