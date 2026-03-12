@@ -12,6 +12,21 @@ export default function LegalVietPage() {
   const [lang, setLang] = useState('ko');
   const [user, setUser] = useState(null);
 
+  // [수정] 1. 페이지 로드시 저장된 언어 불러오기
+  useEffect(() => {
+    const savedLang = localStorage.getItem('legalviet_lang');
+    if (savedLang) {
+      setLang(savedLang);
+    }
+  }, []);
+
+  // [수정] 2. 언어 변경 시 저장하는 핸들러 추가
+  const handleLangChange = (e) => {
+    const newLang = e.target.value;
+    setLang(newLang);
+    localStorage.setItem('legalviet_lang', newLang); // 브라우저에 저장
+  };
+
   // 분석 요청 공통 로직 (기존 로직 유지)
   const performAnalysis = async (promptText, isDoc) => {
     setLoading(true);
@@ -62,7 +77,7 @@ export default function LegalVietPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '0 0 100px 0', fontFamily: 'Pretendard, -apple-system, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '0 0 100px 0', fontFamily: 'Pretendard, sans-serif' }}>
       
       {/* 글로벌 네비게이션 */}
       <nav style={{ 
@@ -78,8 +93,10 @@ export default function LegalVietPage() {
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          {/* [수정] 언어 변경 핸들러 적용 */}
           <select 
-            onChange={(e) => setLang(e.target.value)} 
+            value={lang}
+            onChange={handleLangChange} 
             style={{ border: '1px solid #e2e8f0', background: '#fff', borderRadius: '8px', padding: '6px 12px', fontSize: '14px', cursor: 'pointer' }}
           >
             <option value="ko">한국어 (KOR)</option>
@@ -115,7 +132,6 @@ export default function LegalVietPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', marginBottom: '40px' }}>
               {chatHistory.length === 0 && (
                 <div style={{ padding: '80px 0', textAlign: 'center', background: '#fff', borderRadius: '24px', border: '2px dashed #e2e8f0' }}>
-                  {/* 이슈가 있던 VN 국기 이모지 삭제 */}
                   <p style={{ color: '#94a3b8' }}>
                     {lang === 'ko' ? '아직 분석 내역이 없습니다. 아래에서 내용을 입력하여 시작하세요.' : 'No analysis history yet. Please enter details below to start.'}
                   </p>
@@ -178,7 +194,6 @@ export default function LegalVietPage() {
             </form>
           </main>
 
-          {/* 사이드바 */}
           <aside>
             <div style={{ position: 'sticky', top: '110px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ background: '#0f172a', color: '#fff', padding: '25px', borderRadius: '24px' }}>
@@ -205,7 +220,6 @@ export default function LegalVietPage() {
         </div>
       </div>
 
-      {/* 구독 모달 */}
       {showSubscriptionModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div style={{ background: 'white', padding: '40px', borderRadius: '24px', maxWidth: '400px', width: '90%', textAlign: 'center' }}>
