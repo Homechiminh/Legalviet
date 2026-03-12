@@ -66,7 +66,6 @@ export default function SignupPage() {
           <h2 style={{ fontSize: '24px', fontWeight: '800' }}>회원가입</h2>
         </div>
 
-        {/* 유저 타입 선택 섹션 */}
         <div style={{ display: 'flex', gap: '10px', marginBottom: '25px' }}>
           <button 
             type="button"
