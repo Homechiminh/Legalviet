@@ -1,17 +1,25 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [lang, setLang] = useState('ko'); // 언어 상태 추가 (기본값: 한국어)
+  const [lang, setLang] = useState('ko'); // 기본값: 한국어
   
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
+
+  // [수정] 페이지 로드시 저장된 언어 설정을 불러옵니다.
+  useEffect(() => {
+    const savedLang = localStorage.getItem('legalviet_lang');
+    if (savedLang) {
+      setLang(savedLang);
+    }
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -39,17 +47,7 @@ export default function LoginPage() {
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', padding: '20px', fontFamily: 'Pretendard, sans-serif' }}>
       <div style={{ background: '#fff', padding: '40px', borderRadius: '24px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', width: '100%', maxWidth: '400px', position: 'relative' }}>
         
-        {/* 언어 선택 토글 (우측 상단) */}
-        <div style={{ position: 'absolute', top: '20px', right: '20px' }}>
-          <select 
-            value={lang}
-            onChange={(e) => setLang(e.target.value)} 
-            style={{ border: '1px solid #e2e8f0', background: '#f8fafc', borderRadius: '8px', padding: '6px 10px', fontSize: '13px', cursor: 'pointer', outline: 'none' }}
-          >
-            <option value="ko">KOR</option>
-            <option value="en">ENG</option>
-          </select>
-        </div>
+        {/* [수정] 홈의 설정을 따르기로 했으므로 언어 선택 토글은 삭제했습니다. */}
 
         <div style={{ textAlign: 'center', marginBottom: '30px', marginTop: '10px' }}>
           <div onClick={() => router.push('/')} style={{ cursor: 'pointer', marginBottom: '15px' }}>
