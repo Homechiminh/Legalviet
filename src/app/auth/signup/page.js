@@ -6,17 +6,17 @@ import { supabase } from '@/lib/supabase';
 export default function SignupPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [lang, setLang] = useState('ko'); // 기본값 설정
+  const [lang, setLang] = useState('ko');
   
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    user_type: 'normal', // 기본값: 일반 유저
+    user_type: 'normal',
     phone: '',
+    chat_type: 'kakao', // [추가] 기본값: 카카오톡
     chatId: ''
   });
 
-  // [수정] 페이지가 로드될 때 홈에서 저장한 언어 설정을 불러옵니다.
   useEffect(() => {
     const savedLang = localStorage.getItem('legalviet_lang');
     if (savedLang) {
@@ -29,7 +29,6 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      // 1. Supabase Auth 계정 생성
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -37,15 +36,15 @@ export default function SignupPage() {
 
       if (authError) throw authError;
 
-      // 2. profiles 테이블에 확장 정보 저장 (user_type 포함)
       if (authData.user) {
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([{ 
             id: authData.user.id, 
             email: formData.email,
-            user_type: formData.user_type, // 'normal' 또는 'lawfirm'
+            user_type: formData.user_type,
             phone: formData.phone, 
+            chat_type: formData.chat_type, // [추가] 선택한 채팅앱 종류 저장
             chat_id: formData.chatId,
             chat_count: 0,
             is_subscribed: false
@@ -65,11 +64,9 @@ export default function SignupPage() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', padding: '20px', fontFamily: 'Pretendard, sans-serif' }}>
-      <div style={{ background: '#fff', padding: '40px', borderRadius: '24px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', width: '100%', maxWidth: '450px', position: 'relative' }}>
+      <div style={{ background: '#fff', padding: '40px', borderRadius: '24px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', width: '100%', maxWidth: '450px' }}>
         
-        {/* [수정] 홈의 설정을 따르기로 했으므로 우측 상단 언어 선택 셀렉트 박스는 삭제했습니다. */}
-
-        <div style={{ textAlign: 'center', marginBottom: '30px', marginTop: '10px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
           <div onClick={() => router.push('/')} style={{ cursor: 'pointer', marginBottom: '15px' }}>
             <span style={{ background: '#da251d', color: '#fff', padding: '4px 10px', borderRadius: '6px', fontWeight: '900' }}>L</span>
             <span style={{ fontSize: '22px', fontWeight: '900', marginLeft: '8px' }}>LegalViet</span>
@@ -79,15 +76,15 @@ export default function SignupPage() {
           </h2>
         </div>
 
+        {/* 유저 타입 선택 */}
         <div style={{ display: 'flex', gap: '10px', marginBottom: '25px' }}>
           <button 
             type="button"
             onClick={() => setFormData({...formData, user_type: 'normal'})}
             style={{ 
-              flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', cursor: 'pointer', fontWeight: '700', fontSize: '14px',
+              flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', cursor: 'pointer', fontWeight: '700',
               background: formData.user_type === 'normal' ? '#0f172a' : '#fff',
-              color: formData.user_type === 'normal' ? '#fff' : '#64748b',
-              transition: '0.2s'
+              color: formData.user_type === 'normal' ? '#fff' : '#64748b'
             }}
           >
             {lang === 'ko' ? '일반 유저' : 'General User'}
@@ -96,10 +93,9 @@ export default function SignupPage() {
             type="button"
             onClick={() => setFormData({...formData, user_type: 'lawfirm'})}
             style={{ 
-              flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', cursor: 'pointer', fontWeight: '700', fontSize: '14px',
+              flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', cursor: 'pointer', fontWeight: '700',
               background: formData.user_type === 'lawfirm' ? '#da251d' : '#fff',
-              color: formData.user_type === 'lawfirm' ? '#fff' : '#64748b',
-              transition: '0.2s'
+              color: formData.user_type === 'lawfirm' ? '#fff' : '#64748b'
             }}
           >
             {lang === 'ko' ? '로펌 유저' : 'Law Firm User'}
@@ -116,19 +112,39 @@ export default function SignupPage() {
             <input required type="password" placeholder={lang === 'ko' ? '6자리 이상' : '6+ characters'} value={formData.password} onChange={(e)=>setFormData({...formData, password: e.target.value})} style={inputStyle} />
           </div>
 
+          {/* 추가 정보 섹션 */}
           <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '15px', marginTop: '10px' }}>
             <p style={{ fontSize: '12px', fontWeight: '800', color: formData.user_type === 'lawfirm' ? '#da251d' : '#0f172a', marginBottom: '10px' }}>
-              {formData.user_type === 'lawfirm' 
-                ? (lang === 'ko' ? '로펌 추가 정보 (선택)' : 'Law Firm Info (Optional)') 
-                : (lang === 'ko' ? '추가 정보 (선택)' : 'Additional Info (Optional)')}
+              {lang === 'ko' ? '연락처 정보 (선택)' : 'Contact Info (Optional)'}
             </p>
+            
             <div style={{ marginBottom: '10px' }}>
-              <label style={subLabelStyle}>{lang === 'ko' ? '연락처' : 'Contact Number'}</label>
+              <label style={subLabelStyle}>{lang === 'ko' ? '연락처' : 'Phone Number'}</label>
               <input type="text" placeholder="010-0000-0000" value={formData.phone} onChange={(e)=>setFormData({...formData, phone: e.target.value})} style={inputStyle} />
             </div>
+
+            {/* [추가] 채팅앱 종류 및 ID 입력 영역 */}
             <div>
-              <label style={subLabelStyle}>{lang === 'ko' ? '채팅앱 ID (카톡/텔레그램)' : 'Chat App ID (Kakao/Telegram)'}</label>
-              <input type="text" placeholder={lang === 'ko' ? '아이디 입력' : 'Enter ID'} value={formData.chatId} onChange={(e)=>setFormData({...formData, chatId: e.target.value})} style={inputStyle} />
+              <label style={subLabelStyle}>{lang === 'ko' ? '채팅앱 및 ID' : 'Chat App & ID'}</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <select 
+                  value={formData.chat_type} 
+                  onChange={(e) => setFormData({...formData, chat_type: e.target.value})}
+                  style={{ ...inputStyle, width: '120px', fontSize: '13px', padding: '10px' }}
+                >
+                  <option value="kakao">카카오톡</option>
+                  <option value="telegram">텔레그램</option>
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="zalo">Zalo</option>
+                </select>
+                <input 
+                  type="text" 
+                  placeholder={lang === 'ko' ? '아이디 입력' : 'Enter ID'} 
+                  value={formData.chatId} 
+                  onChange={(e)=>setFormData({...formData, chatId: e.target.value})} 
+                  style={{ ...inputStyle, flex: 1 }} 
+                />
+              </div>
             </div>
           </div>
 
@@ -137,12 +153,7 @@ export default function SignupPage() {
             background: formData.user_type === 'lawfirm' ? '#da251d' : '#0f172a',
             color: '#fff'
           }}>
-            {loading 
-              ? (lang === 'ko' ? '처리 중...' : 'Processing...') 
-              : (formData.user_type === 'lawfirm' 
-                  ? (lang === 'ko' ? '로펌 계정으로 가입' : 'Sign Up as Law Firm') 
-                  : (lang === 'ko' ? '일반 계정으로 가입' : 'Sign Up as General User'))
-            }
+            {loading ? (lang === 'ko' ? '처리 중...' : 'Processing...') : (lang === 'ko' ? '가입하기' : 'Sign Up')}
           </button>
         </form>
 
