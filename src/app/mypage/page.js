@@ -8,29 +8,38 @@ export default function MyPage() {
   const [loading, setLoading] = useState(true);
   const [lang, setLang] = useState('ko');
   const [profile, setProfile] = useState(null);
+  const [history, setHistory] = useState([]);
 
   useEffect(() => {
     const savedLang = localStorage.getItem('legalviet_lang');
     if (savedLang) setLang(savedLang);
-    fetchProfile();
+    fetchProfileAndHistory();
   }, []);
 
-  const fetchProfile = async () => {
+  const fetchProfileAndHistory = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push('/auth/login');
         return;
       }
-      const { data, error } = await supabase
-        .from('profiles')
+
+      // 1. 프로필 & 사용 횟수 정보
+      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      if (profileData) setProfile(profileData);
+
+      // 2. 질문 히스토리 (최신순 10개)
+      const { data: historyData } = await supabase
+        .from('legal_cases')
         .select('*')
-        .eq('id', user.id)
-        .single();
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
       
-      if (data) setProfile(data);
+      if (historyData) setHistory(historyData);
+
     } catch (err) {
-      console.error("Profile fetch error:", err);
+      console.error("Data fetch error:", err);
     } finally {
       setLoading(false);
     }
@@ -42,138 +51,120 @@ export default function MyPage() {
   };
 
   if (loading) return <div style={{ padding: '50px', textAlign: 'center' }}>Loading...</div>;
-  // profile이 없을 경우를 대비한 방어 코드
   if (!profile) return <div style={{ padding: '50px', textAlign: 'center' }}>유저 정보를 불러올 수 없습니다.</div>;
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '40px 20px', fontFamily: 'Pretendard' }}>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
         
+        {/* 헤더 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
           <h1 style={{ fontSize: '28px', fontWeight: '800' }}>{lang === 'ko' ? '마이페이지' : 'My Page'}</h1>
-          <button onClick={handleLogout} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer' }}>
+          <button onClick={handleLogout} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontSize: '14px' }}>
             {lang === 'ko' ? '로그아웃' : 'Logout'}
           </button>
         </div>
 
-        {/* 유저 정보 카드 */}
+        {/* 1. 멤버십 & 사용 현황 카드 (사장님 요청 추가분) */}
+        <div style={{ ...cardStyle, background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: '#fff', border: 'none' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <p style={{ opacity: 0.8, fontSize: '14px', marginBottom: '8px' }}>Membership Status</p>
+              <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '20px' }}>
+                {profile.is_subscribed ? (lang === 'ko' ? '프리미엄 구독 중' : 'Premium Subscriber') : (lang === 'ko' ? '무료 체험 중' : 'Free Plan')}
+              </h2>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.1)', padding: '10px 15px', borderRadius: '12px', textAlign: 'right' }}>
+              <p style={{ fontSize: '12px', opacity: 0.7 }}>{lang === 'ko' ? '잔여 횟수' : 'Remaining'}</p>
+              <p style={{ fontSize: '20px', fontWeight: '700' }}>
+                {profile.is_subscribed ? '∞' : `${Math.max(0, 1 - (profile.chat_count || 0))}/1`}
+              </p>
+            </div>
+          </div>
+          {!profile.is_subscribed && (
+            <button style={{ width: '100%', padding: '12px', borderRadius: '10px', background: '#da251d', color: '#fff', border: 'none', fontWeight: '700', cursor: 'pointer', marginTop: '10px' }}>
+              {lang === 'ko' ? '무제한 이용권 구매하기' : 'Upgrade to Premium'}
+            </button>
+          )}
+        </div>
+
+        {/* 2. 유저 기본 정보 */}
         <div style={cardStyle}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <div style={{ 
-              width: '60px', 
-              height: '60px', 
-              background: profile.user_type === 'lawfirm' ? '#da251d' : '#0f172a', 
-              borderRadius: '50%', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              color: '#fff', 
-              fontSize: '24px', 
-              fontWeight: '900' 
-            }}>
-              {profile.email ? profile.email[0].toUpperCase() : 'U'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <div style={{ width: '45px', height: '45px', background: '#f1f5f9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: '700', color: '#0f172a' }}>
+              {profile.email[0].toUpperCase()}
             </div>
             <div>
-              <p style={{ fontSize: '18px', fontWeight: '700', marginBottom: '4px' }}>{profile.email}</p>
-              <span style={{ fontSize: '13px', padding: '4px 8px', borderRadius: '4px', background: '#f1f5f9', color: '#64748b', fontWeight: '600' }}>
-                {profile.user_type === 'lawfirm' ? (lang === 'ko' ? '로펌 파트너' : 'Law Firm Partner') : (lang === 'ko' ? '일반 회원' : 'General Member')}
-              </span>
+              <p style={{ fontSize: '16px', fontWeight: '700' }}>{profile.email}</p>
+              <p style={{ fontSize: '13px', color: '#64748b' }}>{profile.user_type === 'lawfirm' ? 'Law Firm Partner' : 'General User'}</p>
             </div>
           </div>
         </div>
 
-        {profile.user_type === 'lawfirm' ? (
-          <LawFirmDashboard lang={lang} profile={profile} />
-        ) : (
-          <UserDashboard lang={lang} profile={profile} />
-        )}
+        {/* 3. 분석 히스토리 */}
+        <div style={{ marginBottom: '30px' }}>
+          <h3 style={{ marginBottom: '15px', fontWeight: '700', display: 'flex', justifyContent: 'space-between' }}>
+            {lang === 'ko' ? '최근 분석 내역' : 'Recent History'}
+            <span style={{ fontSize: '13px', color: '#3b82f6', fontWeight: '400' }}>Total {history.length}</span>
+          </h3>
+          {history.length === 0 ? (
+            <div style={{ ...cardStyle, textAlign: 'center', color: '#94a3b8', padding: '40px' }}>
+              {lang === 'ko' ? '아직 분석 내역이 없습니다.' : 'No history found.'}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {history.map((item) => (
+                <div key={item.id} style={{ ...cardStyle, cursor: 'pointer', transition: '0.2s' }} onClick={() => alert(`[분석결과]\n${item.analysis}`)}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>{new Date(item.created_at).toLocaleDateString()}</span>
+                    {item.file_url && <span style={{ fontSize: '11px', background: '#eff6ff', color: '#3b82f6', padding: '2px 6px', borderRadius: '4px' }}>📄 File</span>}
+                  </div>
+                  <p style={{ fontWeight: '600', fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {item.content}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 4. 고객 지원 (UserDashboard) */}
+        <UserDashboard lang={lang} profile={profile} />
+        
       </div>
     </div>
   );
 }
 
-// 하단 UserDashboard, LawFirmDashboard, 스타일 상수는 기존과 동일하므로 유지하시면 됩니다.
-// (단, cardStyle과 actionButtonStyle이 하단에 정의되어 있어야 함)
+const cardStyle = { 
+  background: '#fff', 
+  padding: '24px', 
+  borderRadius: '20px', 
+  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', 
+  marginBottom: '15px',
+  border: '1px solid #f1f5f9'
+};
 
 function UserDashboard({ lang, profile }) {
   const [requesting, setRequesting] = useState(false);
-
   const handleConsultationRequest = async (type) => {
     const KAKAO_URL = "https://open.kakao.com/o/sUEA1yfd";
     const TELEGRAM_URL = "https://t.me/Legalviet";
-    
-    const targetUrl = type === 'kakao' ? KAKAO_URL : TELEGRAM_URL;
-    const platformName = type === 'kakao' ? '카카오톡' : '텔레그램';
-
-    const msg = lang === 'ko' 
-      ? `${platformName}으로 전담 상담원과 연결됩니다.` 
-      : `Connecting to a consultant via ${type === 'kakao' ? 'KakaoTalk' : 'Telegram'}.`;
-
-    if (!confirm(msg)) return;
-    
+    if (!confirm(lang === 'ko' ? "상담원과 연결하시겠습니까?" : "Connect to consultant?")) return;
     setRequesting(true);
     try {
-      await supabase
-        .from('consultation_requests')
-        .insert([{
-          user_id: profile.id,
-          user_email: profile.email,
-          user_phone: profile.phone || 'N/A',
-          status: 'pending'
-        }]);
-
-      window.open(targetUrl, '_blank');
-    } catch (error) {
-      console.error("Error logging request:", error);
-    } finally {
-      setRequesting(false);
-    }
+      await supabase.from('consultation_requests').insert([{ user_id: profile.id, user_email: profile.email, status: 'pending' }]);
+      window.open(type === 'kakao' ? KAKAO_URL : TELEGRAM_URL, '_blank');
+    } finally { setRequesting(false); }
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <div style={cardStyle}>
-        <h3 style={{ marginBottom: '15px' }}>{lang === 'ko' ? '1:1 법률 상담 매칭' : '1:1 Legal Matching'}</h3>
-        <p style={{ fontSize: '14px', color: '#64748b', lineHeight: '1.6', marginBottom: '25px' }}>
-          {lang === 'ko' 
-            ? '원하시는 메신저를 선택해주세요. LegalViet 상담원이 로펌 매칭을 도와드립니다.' 
-            : 'Please select your preferred messenger. Our consultant will help you with law firm matching.'}
-        </p>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <button 
-            onClick={() => handleConsultationRequest('kakao')}
-            disabled={requesting}
-            style={{ ...actionButtonStyle, background: '#fae100', color: '#3c1e1e', padding: '16px' }}
-          >
-            <span style={{ fontWeight: '900', marginRight: '8px' }}>TALK</span>
-            {lang === 'ko' ? '카카오톡으로 상담하기' : 'Consult via KakaoTalk'}
-          </button>
-
-          <button 
-            onClick={() => handleConsultationRequest('telegram')}
-            disabled={requesting}
-            style={{ ...actionButtonStyle, background: '#0088cc', color: '#fff', padding: '16px' }}
-          >
-            <span style={{ fontWeight: '900', marginRight: '8px' }}>TG</span>
-            {lang === 'ko' ? '텔레그램으로 상담하기' : 'Consult via Telegram'}
-          </button>
-        </div>
+    <div style={cardStyle}>
+      <h3 style={{ marginBottom: '15px', fontSize: '16px' }}>{lang === 'ko' ? '전문가 매칭 지원' : 'Expert Matching'}</h3>
+      <div style={{ display: 'flex', gap: '10px' }}>
+        <button onClick={() => handleConsultationRequest('kakao')} style={{ flex: 1, padding: '14px', borderRadius: '12px', background: '#fae100', border: 'none', fontWeight: '700', cursor: 'pointer' }}>Kakao</button>
+        <button onClick={() => handleConsultationRequest('telegram')} style={{ flex: 1, padding: '14px', borderRadius: '12px', background: '#0088cc', color: '#fff', border: 'none', fontWeight: '700', cursor: 'pointer' }}>Telegram</button>
       </div>
     </div>
   );
 }
-
-function LawFirmDashboard({ lang, profile }) {
-  return (
-    <div style={cardStyle}>
-      <h3 style={{ color: '#da251d' }}>{lang === 'ko' ? '로펌 파트너 전용 공간' : 'Law Firm Partner Space'}</h3>
-      <p style={{ fontSize: '14px', marginTop: '10px' }}>
-        {lang === 'ko' ? '파트너 로펌을 위한 전용 관리 대시보드가 준비 중입니다.' : 'Partner dashboard is under construction.'}
-      </p>
-    </div>
-  );
-}
-
-const cardStyle = { background: '#fff', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '20px' };
-const actionButtonStyle = { border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', transition: '0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' };
