@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from '@supabase/supabase-js';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -8,7 +8,21 @@ const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process
 
 export async function POST(req) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
+    const cookieStore = cookies();
+    
+    // 최신 SSR 방식 세션 확인
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          get(name) { return cookieStore.get(name)?.value },
+          set(name, value, options) { cookieStore.set({ name, value, ...options }) },
+          remove(name, options) { cookieStore.set({ name, value: '', ...options }) },
+        },
+      }
+    );
+
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
 
@@ -24,11 +38,11 @@ export async function POST(req) {
 
     // 2. 시스템 명령 및 모델 설정
     let systemInstruction = isDocumentRequest 
-      ? `베트남 법률 서류 작성 전문가입니다. 요청 내용을 바탕으로 베트남어 공식 서류 초안을 작성하세요.` 
-      : `베트남 법률 분석 전문가입니다. 답변은 ${lang === 'ko' ? '한국어' : '영어'}로 작성하세요.`;
+      ? `당신은 베트남 법률 행정 서류 작성 전문가입니다. 베트남 관공서 제출용 공식 서류 초안을 베트남어로 작성하세요. 제목은 ${lang === 'ko' ? '한국어' : '영어'}로 쓰되 본문은 격식 있는 베트남어를 사용하세요.` 
+      : `당신은 베트남 법률 분석 전문가입니다. 답변은 ${lang === 'ko' ? '한국어' : '영어'}로 작성하고 마지막에 법적 효력이 없음을 명시하세요.`;
 
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.0-flash", // 멀티모달 지원
+      model: "gemini-2.0-flash", 
       systemInstruction: systemInstruction 
     });
 
@@ -53,6 +67,7 @@ export async function POST(req) {
 
     return new Response(JSON.stringify({ analysis: responseText }), { status: 200 });
   } catch (error) {
+    console.error('API Error:', error);
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 }
