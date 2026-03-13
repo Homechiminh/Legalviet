@@ -9,11 +9,12 @@ export default function SignupPage() {
   const [lang, setLang] = useState('ko');
   
   const [formData, setFormData] = useState({
+    name: '', // [수정] name 필드로 변경
     email: '',
     password: '',
     user_type: 'normal',
     phone: '',
-    chat_type: 'kakao', // [추가] 기본값: 카카오톡
+    chat_type: 'kakao',
     chatId: ''
   });
 
@@ -41,10 +42,11 @@ export default function SignupPage() {
           .from('profiles')
           .insert([{ 
             id: authData.user.id, 
+            name: formData.name, // [수정] name 컬럼에 저장
             email: formData.email,
             user_type: formData.user_type,
             phone: formData.phone, 
-            chat_type: formData.chat_type, // [추가] 선택한 채팅앱 종류 저장
+            chat_type: formData.chat_type,
             chat_id: formData.chatId,
             chat_count: 0,
             is_subscribed: false
@@ -103,6 +105,19 @@ export default function SignupPage() {
         </div>
 
         <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          {/* [추가] 이름 입력 필드 */}
+          <div>
+            <label style={labelStyle}>{lang === 'ko' ? '이름 (필수)' : 'Name (Required)'}</label>
+            <input 
+              required 
+              type="text" 
+              placeholder={lang === 'ko' ? '홍길동' : 'Your Name'} 
+              value={formData.name} 
+              onChange={(e)=>setFormData({...formData, name: e.target.value})} 
+              style={inputStyle} 
+            />
+          </div>
+
           <div>
             <label style={labelStyle}>{lang === 'ko' ? '이메일 (필수)' : 'Email (Required)'}</label>
             <input required type="email" placeholder="example@email.com" value={formData.email} onChange={(e)=>setFormData({...formData, email: e.target.value})} style={inputStyle} />
@@ -112,12 +127,10 @@ export default function SignupPage() {
             <input required type="password" placeholder={lang === 'ko' ? '6자리 이상' : '6+ characters'} value={formData.password} onChange={(e)=>setFormData({...formData, password: e.target.value})} style={inputStyle} />
           </div>
 
-          {/* 추가 정보 섹션 */}
           <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '15px', marginTop: '10px' }}>
             <p style={{ fontSize: '12px', fontWeight: '800', color: formData.user_type === 'lawfirm' ? '#da251d' : '#0f172a', marginBottom: '4px' }}>
               {lang === 'ko' ? '연락처 정보 (선택)' : 'Contact Info (Optional)'}
             </p>
-            {/* 안내 문구 추가 */}
             <p style={{ fontSize: '11px', color: '#64748b', marginBottom: '12px', lineHeight: '1.4' }}>
               {lang === 'ko' 
                 ? '* 추후 로펌 매칭을 원하실 경우 입력해 주시면 편리합니다.' 
@@ -129,7 +142,6 @@ export default function SignupPage() {
               <input type="text" placeholder="010-0000-0000" value={formData.phone} onChange={(e)=>setFormData({...formData, phone: e.target.value})} style={inputStyle} />
             </div>
 
-            {/* 채팅앱 종류 및 ID 입력 영역 */}
             <div>
               <label style={subLabelStyle}>{lang === 'ko' ? '채팅앱 및 ID' : 'Chat App & ID'}</label>
               <div style={{ display: 'flex', gap: '8px' }}>
