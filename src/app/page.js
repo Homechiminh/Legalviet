@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase'; // [수정] supabase 임포트 추가
 
 export default function LegalVietPage() {
   const router = useRouter();
@@ -27,10 +28,21 @@ export default function LegalVietPage() {
     localStorage.setItem('legalviet_lang', newLang); // 브라우저에 저장
   };
 
-  // 분석 요청 공통 로직 (기존 로직 유지)
+  // 분석 요청 공통 로직 (기존 로직 유지 + 로그인 체크 추가)
   const performAnalysis = async (promptText, isDoc) => {
+    // [수정] 로그인 여부 체크 로직 추가
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      alert(lang === 'ko' 
+        ? "법률 분석 기능은 로그인 후 이용 가능합니다. 로그인 페이지로 이동합니다." 
+        : "Legal analysis is available after logging in. Moving to login page.");
+      router.push('/auth/login');
+      return;
+    }
+
     setLoading(true);
-    const tempUserId = user?.id || "user_123"; 
+    const tempUserId = session.user.id; // 세션에서 실제 유저 ID 가져옴
 
     try {
       const response = await fetch('/api/chat', {
