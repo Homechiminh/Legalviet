@@ -28,7 +28,7 @@ export default function LegalVietPage() {
     localStorage.setItem('legalviet_lang', newLang); // 브라우저에 저장
   };
 
-  // 분석 요청 공통 로직 (기존 로직 유지 + 로그인 체크 추가)
+  // 분석 요청 공통 로직 (기존 로직 유지 + 로그인/관리자 체크 추가)
   const performAnalysis = async (promptText, isDoc) => {
     // [수정] 로그인 여부 체크 로직 추가
     const { data: { session } } = await supabase.auth.getSession();
@@ -45,6 +45,15 @@ export default function LegalVietPage() {
     const tempUserId = session.user.id; // 세션에서 실제 유저 ID 가져옴
 
     try {
+      // [핵심 추가] 현재 로그인한 유저의 프로필에서 관리자 여부 확인
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('user_type')
+        .eq('id', tempUserId)
+        .single();
+
+      const isAdminUser = profile?.user_type === 'admin';
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -53,7 +62,7 @@ export default function LegalVietPage() {
           userId: tempUserId,
           lang: lang,
           isDocumentRequest: isDoc,
-          isAdmin: false
+          isAdmin: isAdminUser // DB 값에 따라 자동 설정되도록 변경됨
         }),
       });
 
