@@ -60,20 +60,27 @@ export async function POST(req) {
       systemInstruction: systemInstruction 
     });
 
-    // 4. 이미지 처리 로직 강화
+    // 4. 이미지 및 PDF 처리 로직 강화
     let promptParts = [prompt];
     if (fileUrl) {
       try {
         const imageResp = await fetch(fileUrl).then(res => res.arrayBuffer());
+        
+        // 확장자를 체크하여 적절한 mimeType 설정 (PDF 대응)
+        const fileExt = fileUrl.split('.').pop().toLowerCase();
+        let mimeType = "image/jpeg"; // 기본값
+        if (fileExt === 'pdf') mimeType = "application/pdf";
+        else if (fileExt === 'png') mimeType = "image/png";
+
         promptParts.push({
           inlineData: {
             data: Buffer.from(imageResp).toString("base64"),
-            mimeType: "image/jpeg" 
+            mimeType: mimeType 
           }
         });
       } catch (imgErr) {
-        console.error("Image processing error:", imgErr);
-        // 이미지 처리 실패해도 텍스트 분석은 계속 진행
+        console.error("File processing error:", imgErr);
+        // 파일 처리 실패해도 텍스트 분석은 계속 진행
       }
     }
 
@@ -96,6 +103,6 @@ export async function POST(req) {
 
   } catch (error) {
     console.error('Final API Error:', error);
-    return new Response(JSON.stringify({ error: error.message || "서버 내부 에xt러가 발생했습니다." }), { status: 500 });
+    return new Response(JSON.stringify({ error: error.message || "서버 내부 에러가 발생했습니다." }), { status: 500 });
   }
 }
