@@ -3,16 +3,23 @@ import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+// [설정] 직접 입력된 API 키 및 접속 정보
+// 주의: GEMINI_API_KEY 부분에 사장님의 유료 API 키를 꼭 넣어주세요.
+const GEMINI_API_KEY = "AIzaSyCfzb5WuxREohVZqZlDwF4nlpjSvRXBihw"; 
+const SB_URL = "https://rwezgxprqftuquphvmtp.supabase.co";
+const SB_ANON_KEY = "sb_publishable_fVb3zRDUlGXkfUQDGhbdtw_yk-lahJH";
+const SB_SERVICE_ROLE = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3ZXpneHBycWZ0dXF1cGh2bXRwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjgyMzUzNywiZXhwIjoyMDg4Mzk5NTM3fQ.WsjYdXTLM2J20mt6LEjsXZn4CC6HFc4MVZLDRxV99xk";
+
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const supabaseAdmin = createClient(SB_URL, SB_SERVICE_ROLE);
 
 export async function POST(req) {
   try {
     const cookieStore = await cookies();
     
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      SB_URL,
+      SB_ANON_KEY,
       {
         cookies: {
           get(name) { return cookieStore.get(name)?.value },
@@ -22,7 +29,7 @@ export async function POST(req) {
       }
     );
 
-    // [보안강화] 세션 확인
+    // [세션 확인] 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     const { prompt, userId, isAdmin, lang = 'ko', isDocumentRequest = false, fileUrl = null } = await req.json();
 
@@ -53,11 +60,10 @@ export async function POST(req) {
       ? `당신은 베트남 법률 행정 서류 작성 전문가입니다. 베트남 관공서 제출용 공식 서류 초안을 베트남어로 작성하세요. 제목은 ${lang === 'ko' ? '한국어' : '영어'}로 쓰되 본문은 격식 있는 베트남어를 사용하세요.` 
       : `당신은 베트남 법률 분석 전문가입니다. 답변은 ${lang === 'ko' ? '한국어' : '영어'}로 작성하고 마지막에 법적 효력이 없음을 명시하세요.`;
 
-    // 3. AI 모델 세팅 (Gemini 3 Pro 엔진 장착)
+    // 3. AI 모델 세팅 (Gemini 2.5 Pro 엔진 장착)
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-pro",
+      model: "gemini-2.5-pro", 
       systemInstruction: systemInstruction,
-      // 법률 분석을 위해 온도를 낮춰 더 보수적이고 정확한 답변을 유도합니다.
       generationConfig: {
         temperature: 0.3,
         topP: 0.8,
