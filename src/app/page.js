@@ -22,16 +22,24 @@ export default function LegalVietPage() {
     if (savedLang) setLang(savedLang);
 
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setUser(session.user);
-        // profiles 테이블에서 이름 가져오기
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('name')
-          .eq('id', session.user.id)
-          .single();
-        if (profile) setUserName(profile.name);
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        
+        if (session) {
+          setUser(session.user);
+          // [.single() -> .maybeSingle()로 변경하여 연결에러 방지]
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('name')
+            .eq('id', session.user.id)
+            .maybeSingle();
+            
+          if (profileError) console.error("Profile fetch error:", profileError);
+          if (profile?.name) setUserName(profile.name);
+        }
+      } catch (err) {
+        console.error("User check error:", err);
       }
     };
     checkUser();
@@ -85,11 +93,12 @@ export default function LegalVietPage() {
         fileUrl = publicUrl;
       }
 
+      // [.single() -> .maybeSingle()로 변경하여 프로필 없을 시 터지는 현상 방지]
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('user_type')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (profileError) console.error("Profile fetch error:", profileError);
       const isAdminUser = profile?.user_type === 'admin';
@@ -125,6 +134,7 @@ export default function LegalVietPage() {
       }
     } catch (error) {
       console.error("Analysis Error:", error);
+      // 단순 에러 로그 출력 후 사용자에게는 알림창만 띄움
       alert(lang === 'ko' ? '연결 에러가 발생했습니다.' : 'Connection error occurred.');
     } finally {
       setLoading(false);
