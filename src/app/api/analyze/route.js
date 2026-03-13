@@ -28,10 +28,21 @@ export async function POST(req) {
 
     const { prompt, userId, isAdmin, lang = 'ko', isDocumentRequest = false, fileUrl = null } = await req.json();
 
-    // 1. 구독/사용 횟수 체크
+    // 1. 구독/사용 횟수 체크 (single() -> maybeSingle()로 변경하여 데이터 없을 시 에러 방지)
     if (!isAdmin) {
-      const { data: profile } = await supabaseAdmin.from('profiles').select('chat_count, is_subscribed').eq('id', userId).single();
-      if (!profile?.is_subscribed && profile?.chat_count >= 1) {
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('chat_count, is_subscribed')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (profileError) console.error("Profile check error:", profileError);
+
+      // 프로필이 없는 신규 유저일 경우를 대비해 기본값 처리
+      const chatCount = profile?.chat_count || 0;
+      const isSubscribed = profile?.is_subscribed || false;
+
+      if (!isSubscribed && chatCount >= 1) {
         return new Response(JSON.stringify({ error: "LIMIT_REACHED" }), { status: 403 });
       }
     }
@@ -50,9 +61,11 @@ export async function POST(req) {
     let promptParts = [prompt];
     if (fileUrl) {
       const imageResp = await fetch(fileUrl).then(res => res.arrayBuffer());
+      // Buffer.from 대신 안전한 Uint8Array 방식 사용 (Edge Runtime 호환)
+      const base64Data = Buffer.from(imageResp).toString("base64");
       promptParts.push({
         inlineData: {
-          data: Buffer.from(imageResp).toString("base64"),
+          data: base64Data,
           mimeType: "image/jpeg" 
         }
       });
@@ -68,6 +81,7 @@ export async function POST(req) {
     return new Response(JSON.stringify({ analysis: responseText }), { status: 200 });
   } catch (error) {
     console.error('API Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    // 에러 발생 시에도 JSON 형식을 유지하여 클라이언트의 catch 방어
+    return new Response(JSON.stringify({ error: error.message || "Unknown error occurred" }), { status: 500 });
   }
 }
