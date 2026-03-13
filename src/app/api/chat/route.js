@@ -55,7 +55,7 @@ export async function POST(req) {
       ? `당신은 베트남 법률 행정 서류 작성 전문가입니다...` 
       : `당신은 베트남 법률 분석 전문가입니다...`;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash", systemInstruction });
+    const model = genAI.getGenerativeModel({ model: "gemini-3-pro", systemInstruction });
 
     let promptParts = [prompt];
     if (fileUrl) {
