@@ -160,7 +160,7 @@ function UserDashboard({ lang, profile }) {
 
   return (
     <div style={cardStyle}>
-      <h3 style={{ marginBottom: '15px', fontSize: '16px' }}>{lang === 'ko' ? '전문가 매칭 지원' : 'Expert Matching'}</h3>
+      <h3 style={{ marginBottom: '15px', fontSize: '16px' }}>{lang === 'ko' ? '법률사무소 매칭 지원' : 'Expert Matching'}</h3>
       <div style={{ display: 'flex', gap: '10px' }}>
         <button onClick={() => handleConsultationRequest('kakao')} style={{ flex: 1, padding: '14px', borderRadius: '12px', background: '#fae100', border: 'none', fontWeight: '700', cursor: 'pointer' }}>Kakao</button>
         <button onClick={() => handleConsultationRequest('telegram')} style={{ flex: 1, padding: '14px', borderRadius: '12px', background: '#0088cc', color: '#fff', border: 'none', fontWeight: '700', cursor: 'pointer' }}>Telegram</button>
