@@ -12,20 +12,47 @@ export default function LegalVietPage() {
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [lang, setLang] = useState('ko');
 
-  // [유지] 1. 페이지 로드시 저장된 언어 불러오기
+  // [추가] 유저 상태 관리
+  const [user, setUser] = useState(null);
+  const [userName, setUserName] = useState('');
+
+  // 1. 페이지 로드시 저장된 언어 및 유저 정보 불러오기
   useEffect(() => {
     const savedLang = localStorage.getItem('legalviet_lang');
     if (savedLang) setLang(savedLang);
+
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setUser(session.user);
+        // profiles 테이블에서 이름 가져오기
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', session.user.id)
+          .single();
+        if (profile) setUserName(profile.name);
+      }
+    };
+    checkUser();
   }, []);
 
-  // [유지] 2. 언어 변경 시 저장하는 핸들러
+  // 2. 언어 변경 시 저장하는 핸들러
   const handleLangChange = (e) => {
     const newLang = e.target.value;
     setLang(newLang);
     localStorage.setItem('legalviet_lang', newLang);
   };
 
-  // [에러 수정 반영] 분석 요청 로직 (SSR 세션 및 파일 업로드 포함)
+  // [추가] 로그아웃 핸들러
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setUserName('');
+    router.refresh();
+    alert(lang === 'ko' ? '로그아웃 되었습니다.' : 'Logged out.');
+  };
+
   const performAnalysis = async (promptText, isDoc) => {
     const { data: { session } } = await supabase.auth.getSession();
     
@@ -42,7 +69,6 @@ export default function LegalVietPage() {
     let fileUrl = null;
 
     try {
-      // 1. 파일이 있으면 Supabase Storage에 업로드 (신규 기능)
       if (file) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${userId}_${Date.now()}.${fileExt}`;
@@ -59,16 +85,15 @@ export default function LegalVietPage() {
         fileUrl = publicUrl;
       }
 
-      // 2. 관리자 여부 확인
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('user_type')
         .eq('id', userId)
         .single();
 
+      if (profileError) console.error("Profile fetch error:", profileError);
       const isAdminUser = profile?.user_type === 'admin';
 
-      // 3. API 요청 (SSR 호환)
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -93,13 +118,13 @@ export default function LegalVietPage() {
         }]);
         if (!isDoc) {
           setContent('');
-          setFile(null); // 파일 초기화
+          setFile(null);
         }
       } else {
         alert((lang === 'ko' ? '실패: ' : 'Failed: ') + (data.error || '오류 발생'));
       }
     } catch (error) {
-      console.error(error);
+      console.error("Analysis Error:", error);
       alert(lang === 'ko' ? '연결 에러가 발생했습니다.' : 'Connection error occurred.');
     } finally {
       setLoading(false);
@@ -120,7 +145,7 @@ export default function LegalVietPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '0 0 100px 0', fontFamily: 'Pretendard, sans-serif' }}>
       
-      {/* [유지] 글로벌 네비게이션 */}
+      {/* 네비게이션 바 (로그인 상태 반영) */}
       <nav style={{ 
         background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '0 40px', height: '70px',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 100
@@ -133,22 +158,39 @@ export default function LegalVietPage() {
           LegalViet
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <select 
             value={lang}
             onChange={handleLangChange} 
-            style={{ border: '1px solid #e2e8f0', background: '#fff', borderRadius: '8px', padding: '6px 12px', fontSize: '14px', cursor: 'pointer' }}
+            style={{ border: '1px solid #e2e8f0', background: '#fff', borderRadius: '8px', padding: '6px 12px', fontSize: '14px', cursor: 'pointer', marginRight: '5px' }}
           >
             <option value="ko">한국어 (KOR)</option>
             <option value="en">English (ENG)</option>
           </select>
-          <div style={{ height: '20px', width: '1px', background: '#e2e8f0' }} />
-          <button onClick={() => router.push('/auth/login')} style={{ fontSize: '14px', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer' }}>
-            {lang === 'ko' ? '로그인' : 'Login'}
-          </button>
-          <button onClick={() => router.push('/auth/signup')} style={{ fontSize: '14px', fontWeight: '600', color: '#fff', background: '#0f172a', border: 'none', padding: '8px 20px', borderRadius: '8px', cursor: 'pointer' }}>
-            {lang === 'ko' ? '회원가입' : 'Sign Up'}
-          </button>
+
+          {user ? (
+            // 로그인 했을 때 UI
+            <>
+              <span style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>
+                {userName || (lang === 'ko' ? '사용자' : 'User')}님
+              </span>
+              <button onClick={handleLogout} style={{ fontSize: '14px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600' }}>
+                {lang === 'ko' ? '로그아웃' : 'Logout'}
+              </button>
+            </>
+          ) : (
+            // 로그인 안 했을 때 UI
+            <>
+              <button onClick={() => router.push('/auth/login')} style={{ fontSize: '14px', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer' }}>
+                {lang === 'ko' ? '로그인' : 'Login'}
+              </button>
+              <button onClick={() => router.push('/auth/signup')} style={{ fontSize: '14px', fontWeight: '600', color: '#fff', background: '#0f172a', border: 'none', padding: '8px 20px', borderRadius: '8px', cursor: 'pointer' }}>
+                {lang === 'ko' ? '회원가입' : 'Sign Up'}
+              </button>
+            </>
+          )}
+
+          <div style={{ height: '20px', width: '1px', background: '#e2e8f0', margin: '0 5px' }} />
           <button onClick={() => router.push('/mypage')} style={{ background: 'none', border: '1px solid #0f172a', padding: '7px 15px', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
             {lang === 'ko' ? '마이페이지' : 'My Page'}
           </button>
@@ -166,7 +208,6 @@ export default function LegalVietPage() {
               </p>
             </header>
 
-            {/* [유지] 대화 내역 카드 섹션 */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', marginBottom: '40px' }}>
               {chatHistory.length === 0 && (
                 <div style={{ padding: '80px 0', textAlign: 'center', background: '#fff', borderRadius: '24px', border: '2px dashed #e2e8f0' }}>
@@ -212,7 +253,6 @@ export default function LegalVietPage() {
               ))}
             </div>
 
-            {/* [유지] 입력 영역 (파일 업로드 기능 포함) */}
             <form onSubmit={handleSubmit} style={{ background: '#fff', padding: '30px', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0' }}>
               <textarea
                 value={content}
@@ -232,7 +272,6 @@ export default function LegalVietPage() {
             </form>
           </main>
 
-          {/* [유지] 사이드바 (Premium Service & 도움말) */}
           <aside>
             <div style={{ position: 'sticky', top: '110px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ background: '#0f172a', color: '#fff', padding: '25px', borderRadius: '24px' }}>
@@ -259,7 +298,6 @@ export default function LegalVietPage() {
         </div>
       </div>
 
-      {/* [유지] 구독 모달 */}
       {showSubscriptionModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div style={{ background: 'white', padding: '40px', borderRadius: '24px', maxWidth: '400px', width: '90%', textAlign: 'center' }}>
