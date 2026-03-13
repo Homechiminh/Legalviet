@@ -55,7 +55,7 @@ export async function POST(req) {
 
     // 3. AI 모델 세팅 (Gemini 3 Pro 엔진 장착)
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-3-pro",
+      model: "gemini-2.5-pro",
       systemInstruction: systemInstruction,
       // 법률 분석을 위해 온도를 낮춰 더 보수적이고 정확한 답변을 유도합니다.
       generationConfig: {
