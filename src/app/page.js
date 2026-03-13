@@ -9,14 +9,14 @@ export default function LegalVietPage() {
   const [file, setFile] = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0); // [추가] 로딩 단계 관리
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [lang, setLang] = useState('ko');
 
-  // [추가] 유저 상태 관리
   const [user, setUser] = useState(null);
   const [userName, setUserName] = useState('');
 
-  // 1. 페이지 로드시 저장된 언어 및 유저 정보 불러오기
+  // 1. 페이지 로드시 유저 정보 및 [대화 내역] 불러오기
   useEffect(() => {
     const savedLang = localStorage.getItem('legalviet_lang');
     if (savedLang) setLang(savedLang);
@@ -28,15 +28,30 @@ export default function LegalVietPage() {
         
         if (session) {
           setUser(session.user);
-          // [.single() -> .maybeSingle()로 변경하여 연결에러 방지]
-          const { data: profile, error: profileError } = await supabase
+          
+          // 유저 프로필 가져오기
+          const { data: profile } = await supabase
             .from('profiles')
             .select('name')
             .eq('id', session.user.id)
             .maybeSingle();
             
-          if (profileError) console.error("Profile fetch error:", profileError);
           if (profile?.name) setUserName(profile.name);
+
+          // [핵심] 새로고침 시 이전 내역 불러오기 (리셋 방지)
+          const { data: cases, error: caseError } = await supabase
+            .from('legal_cases')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .order('created_at', { ascending: true });
+
+          if (cases && cases.length > 0) {
+            const history = cases.flatMap(c => [
+              { role: 'user', text: c.content },
+              { role: 'model', text: c.analysis }
+            ]);
+            setChatHistory(history);
+          }
         }
       } catch (err) {
         console.error("User check error:", err);
@@ -45,18 +60,30 @@ export default function LegalVietPage() {
     checkUser();
   }, []);
 
-  // 2. 언어 변경 시 저장하는 핸들러
+  // [추가] 로딩 메시지 순환 효과 (3초마다 변경)
+  useEffect(() => {
+    let interval;
+    if (loading) {
+      interval = setInterval(() => {
+        setLoadingStep((prev) => (prev + 1) % 3);
+      }, 3000);
+    } else {
+      setLoadingStep(0);
+    }
+    return () => clearInterval(interval);
+  }, [loading]);
+
   const handleLangChange = (e) => {
     const newLang = e.target.value;
     setLang(newLang);
     localStorage.setItem('legalviet_lang', newLang);
   };
 
-  // [추가] 로그아웃 핸들러
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
     setUserName('');
+    setChatHistory([]); // 로그아웃 시 내역 초기화
     router.refresh();
     alert(lang === 'ko' ? '로그아웃 되었습니다.' : 'Logged out.');
   };
@@ -93,15 +120,18 @@ export default function LegalVietPage() {
         fileUrl = publicUrl;
       }
 
-      // [.single() -> .maybeSingle()로 변경하여 프로필 없을 시 터지는 현상 방지]
-      const { data: profile, error: profileError } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
         .select('user_type')
         .eq('id', userId)
         .maybeSingle();
 
-      if (profileError) console.error("Profile fetch error:", profileError);
       const isAdminUser = profile?.user_type === 'admin';
+
+      // 질문 내용을 먼저 히스토리에 추가 (즉각적인 피드백)
+      if (!isDoc) {
+        setChatHistory(prev => [...prev, { role: 'user', text: promptText }]);
+      }
 
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -120,6 +150,8 @@ export default function LegalVietPage() {
 
       if (response.status === 403 && data.error === "LIMIT_REACHED") {
         setShowSubscriptionModal(true);
+        // 제한 걸렸을 때 방금 추가한 질문은 다시 제거 (선택 사항)
+        setChatHistory(prev => prev.slice(0, -1));
       } else if (response.ok) {
         setChatHistory(prev => [...prev, { 
           role: isDoc ? 'document' : 'model', 
@@ -134,7 +166,6 @@ export default function LegalVietPage() {
       }
     } catch (error) {
       console.error("Analysis Error:", error);
-      // 단순 에러 로그 출력 후 사용자에게는 알림창만 띄움
       alert(lang === 'ko' ? '연결 에러가 발생했습니다.' : 'Connection error occurred.');
     } finally {
       setLoading(false);
@@ -155,7 +186,7 @@ export default function LegalVietPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '0 0 100px 0', fontFamily: 'Pretendard, sans-serif' }}>
       
-      {/* 네비게이션 바 (로그인 상태 반영) */}
+      {/* 네비게이션 바 */}
       <nav style={{ 
         background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '0 40px', height: '70px',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 100
@@ -179,7 +210,6 @@ export default function LegalVietPage() {
           </select>
 
           {user ? (
-            // 로그인 했을 때 UI
             <>
               <span style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>
                 {userName || (lang === 'ko' ? '사용자' : 'User')}님
@@ -189,7 +219,6 @@ export default function LegalVietPage() {
               </button>
             </>
           ) : (
-            // 로그인 안 했을 때 UI
             <>
               <button onClick={() => router.push('/auth/login')} style={{ fontSize: '14px', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer' }}>
                 {lang === 'ko' ? '로그인' : 'Login'}
@@ -229,9 +258,10 @@ export default function LegalVietPage() {
               {chatHistory.map((chat, index) => (
                 <div key={index} style={{ 
                   width: '100%', padding: '30px', borderRadius: '24px',
-                  background: chat.role === 'document' ? '#fffbeb' : '#fff',
-                  border: chat.role === 'document' ? '2px solid #fcd34d' : '1px solid #e2e8f0',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)'
+                  background: chat.role === 'user' ? 'transparent' : (chat.role === 'document' ? '#fffbeb' : '#fff'),
+                  border: chat.role === 'user' ? 'none' : (chat.role === 'document' ? '2px solid #fcd34d' : '1px solid #e2e8f0'),
+                  boxShadow: chat.role === 'user' ? 'none' : '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                  marginBottom: chat.role === 'user' ? '-10px' : '0'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
                     <div style={{ 
@@ -275,8 +305,30 @@ export default function LegalVietPage() {
                   <input type="file" onChange={(e) => setFile(e.target.files[0])} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
                   {file ? `✅ ${file.name}` : (lang === 'ko' ? '📁 파일/이미지 업로드' : '📁 Upload File/Image')}
                 </div>
-                <button type="submit" disabled={loading} style={{ flex: 1.5, background: '#0f172a', color: '#fff', height: '60px', borderRadius: '15px', border: 'none', fontWeight: '800', fontSize: '18px', cursor: 'pointer' }}>
-                  {loading ? (lang === 'ko' ? '분석 중...' : 'Analyzing...') : (lang === 'ko' ? '분석 시작하기' : 'Start Analysis')}
+                
+                {/* [수정] 동적 로딩 애니메이션 버튼 */}
+                <button 
+                  type="submit" 
+                  disabled={loading} 
+                  style={{ 
+                    flex: 1.5, background: loading ? '#1e293b' : '#0f172a', color: '#fff', 
+                    height: '60px', borderRadius: '15px', border: 'none', fontWeight: '800', 
+                    fontSize: '18px', cursor: loading ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  {loading ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                      <div className="pulse-loader"></div>
+                      <span style={{ fontSize: '15px' }}>
+                        {loadingStep === 0 && (lang === 'ko' ? "⚖️ 법률 데이터 조회 중..." : "Searching Laws...")}
+                        {loadingStep === 1 && (lang === 'ko' ? "🔍 관련 조항 분석 중..." : "Analyzing Clauses...")}
+                        {loadingStep === 2 && (lang === 'ko' ? "📝 답변 작성 중..." : "Drafting Response...")}
+                      </span>
+                    </div>
+                  ) : (
+                    (lang === 'ko' ? '분석 시작하기' : 'Start Analysis')
+                  )}
                 </button>
               </div>
             </form>
@@ -332,6 +384,22 @@ export default function LegalVietPage() {
           </div>
         </div>
       )}
+
+      {/* 로딩 애니메이션 CSS */}
+      <style jsx>{`
+        .pulse-loader {
+          width: 10px;
+          height: 10px;
+          background-color: #fff;
+          border-radius: 50%;
+          animation: pulse 1.5s infinite ease-in-out;
+        }
+        @keyframes pulse {
+          0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); }
+          70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
+          100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+        }
+      `}</style>
     </div>
   );
 }
