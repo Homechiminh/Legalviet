@@ -16,14 +16,24 @@ export default function MyPage() {
   }, []);
 
   const fetchProfile = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      router.push('/auth/login');
-      return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/auth/login');
+        return;
+      }
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (data) setProfile(data);
+    } catch (err) {
+      console.error("Profile fetch error:", err);
+    } finally {
+      setLoading(false);
     }
-    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-    if (data) setProfile(data);
-    setLoading(false);
   };
 
   const handleLogout = async () => {
@@ -32,6 +42,8 @@ export default function MyPage() {
   };
 
   if (loading) return <div style={{ padding: '50px', textAlign: 'center' }}>Loading...</div>;
+  // profile이 없을 경우를 대비한 방어 코드
+  if (!profile) return <div style={{ padding: '50px', textAlign: 'center' }}>유저 정보를 불러올 수 없습니다.</div>;
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '40px 20px', fontFamily: 'Pretendard' }}>
@@ -47,8 +59,19 @@ export default function MyPage() {
         {/* 유저 정보 카드 */}
         <div style={cardStyle}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <div style={{ width: '60px', height: '60px', background: profile.user_type === 'lawfirm' ? '#da251d' : '#0f172a', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '24px', fontWeight: '900' }}>
-              {profile.email[0].toUpperCase()}
+            <div style={{ 
+              width: '60px', 
+              height: '60px', 
+              background: profile.user_type === 'lawfirm' ? '#da251d' : '#0f172a', 
+              borderRadius: '50%', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              color: '#fff', 
+              fontSize: '24px', 
+              fontWeight: '900' 
+            }}>
+              {profile.email ? profile.email[0].toUpperCase() : 'U'}
             </div>
             <div>
               <p style={{ fontSize: '18px', fontWeight: '700', marginBottom: '4px' }}>{profile.email}</p>
@@ -69,7 +92,9 @@ export default function MyPage() {
   );
 }
 
-// --- 일반 유저 전용 대시보드 (메신저 선택형) ---
+// 하단 UserDashboard, LawFirmDashboard, 스타일 상수는 기존과 동일하므로 유지하시면 됩니다.
+// (단, cardStyle과 actionButtonStyle이 하단에 정의되어 있어야 함)
+
 function UserDashboard({ lang, profile }) {
   const [requesting, setRequesting] = useState(false);
 
@@ -88,7 +113,6 @@ function UserDashboard({ lang, profile }) {
     
     setRequesting(true);
     try {
-      // DB에 상담 요청 기록 저장
       await supabase
         .from('consultation_requests')
         .insert([{
@@ -98,9 +122,7 @@ function UserDashboard({ lang, profile }) {
           status: 'pending'
         }]);
 
-      // 선택한 메신저로 이동
       window.open(targetUrl, '_blank');
-
     } catch (error) {
       console.error("Error logging request:", error);
     } finally {
@@ -119,54 +141,24 @@ function UserDashboard({ lang, profile }) {
         </p>
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {/* 카카오톡 버튼 */}
           <button 
             onClick={() => handleConsultationRequest('kakao')}
             disabled={requesting}
-            style={{ 
-              ...actionButtonStyle, 
-              background: '#fae100', 
-              color: '#3c1e1e', 
-              padding: '16px', 
-              fontSize: '15px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '10px'
-            }}
+            style={{ ...actionButtonStyle, background: '#fae100', color: '#3c1e1e', padding: '16px' }}
           >
-            <span style={{ fontWeight: '900' }}>TALK</span>
+            <span style={{ fontWeight: '900', marginRight: '8px' }}>TALK</span>
             {lang === 'ko' ? '카카오톡으로 상담하기' : 'Consult via KakaoTalk'}
           </button>
 
-          {/* 텔레그램 버튼 */}
           <button 
             onClick={() => handleConsultationRequest('telegram')}
             disabled={requesting}
-            style={{ 
-              ...actionButtonStyle, 
-              background: '#0088cc', 
-              color: '#fff', 
-              padding: '16px', 
-              fontSize: '15px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '10px'
-            }}
+            style={{ ...actionButtonStyle, background: '#0088cc', color: '#fff', padding: '16px' }}
           >
-            <span style={{ fontWeight: '900' }}>TG</span>
+            <span style={{ fontWeight: '900', marginRight: '8px' }}>TG</span>
             {lang === 'ko' ? '텔레그램으로 상담하기' : 'Consult via Telegram'}
           </button>
         </div>
-      </div>
-
-      <div style={cardStyle}>
-        <h3 style={{ marginBottom: '20px' }}>{lang === 'ko' ? '안내 사항' : 'Information'}</h3>
-        <ul style={{ paddingLeft: '20px', fontSize: '14px', color: '#64748b', lineHeight: '1.8' }}>
-          <li>{lang === 'ko' ? '상담 가능 시간: 평일 09:00 - 18:00 (베트남 시간)' : 'Available: Weekdays 09:00 - 18:00 (ICT)'}</li>
-          <li>{lang === 'ko' ? '매칭된 상담 내역은 선택하신 채팅창에서 유지됩니다.' : 'Consultation history is kept in your selected messenger.'}</li>
-        </ul>
       </div>
     </div>
   );
@@ -184,4 +176,4 @@ function LawFirmDashboard({ lang, profile }) {
 }
 
 const cardStyle = { background: '#fff', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', marginBottom: '20px' };
-const actionButtonStyle = { border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', transition: '0.2s' };
+const actionButtonStyle = { border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', transition: '0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' };
