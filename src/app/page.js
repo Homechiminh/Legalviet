@@ -13,7 +13,6 @@ export default function LegalVietPage() {
   const [lang, setLang] = useState('ko');
   const [user, setUser] = useState(null);
 
-  // [수정] 1. 페이지 로드시 저장된 언어 불러오기
   useEffect(() => {
     const savedLang = localStorage.getItem('legalviet_lang');
     if (savedLang) {
