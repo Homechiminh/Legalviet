@@ -36,7 +36,7 @@ export default function SignupPage() {
 
       if (authError) throw authError;
 
-      if (authData.user) {
+      if (authData?.user) {
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([{ 
@@ -114,8 +114,14 @@ export default function SignupPage() {
 
           {/* 추가 정보 섹션 */}
           <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '15px', marginTop: '10px' }}>
-            <p style={{ fontSize: '12px', fontWeight: '800', color: formData.user_type === 'lawfirm' ? '#da251d' : '#0f172a', marginBottom: '10px' }}>
+            <p style={{ fontSize: '12px', fontWeight: '800', color: formData.user_type === 'lawfirm' ? '#da251d' : '#0f172a', marginBottom: '4px' }}>
               {lang === 'ko' ? '연락처 정보 (선택)' : 'Contact Info (Optional)'}
+            </p>
+            {/* 안내 문구 추가 */}
+            <p style={{ fontSize: '11px', color: '#64748b', marginBottom: '12px', lineHeight: '1.4' }}>
+              {lang === 'ko' 
+                ? '* 추후 로펌 매칭을 원하실 경우 입력해 주시면 편리합니다.' 
+                : '* Providing this will make law firm matching easier later.'}
             </p>
             
             <div style={{ marginBottom: '10px' }}>
@@ -123,7 +129,7 @@ export default function SignupPage() {
               <input type="text" placeholder="010-0000-0000" value={formData.phone} onChange={(e)=>setFormData({...formData, phone: e.target.value})} style={inputStyle} />
             </div>
 
-            {/* [추가] 채팅앱 종류 및 ID 입력 영역 */}
+            {/* 채팅앱 종류 및 ID 입력 영역 */}
             <div>
               <label style={subLabelStyle}>{lang === 'ko' ? '채팅앱 및 ID' : 'Chat App & ID'}</label>
               <div style={{ display: 'flex', gap: '8px' }}>
