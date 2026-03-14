@@ -71,17 +71,11 @@ export default function LegalVietPage() {
     return () => clearInterval(interval);
   }, [loading]);
 
-  // [수정] 워드(.doc) 다운로드 기능
   const exportToWord = (text) => {
     const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>LegalViet Document</title></head><body>";
     const footer = "</body></html>";
-    // 줄바꿈을 HTML 태그로 변환
     const sourceHTML = header + text.replace(/\n/g, "<br/>") + footer;
-    
-    const blob = new Blob(['\ufeff', sourceHTML], {
-      type: 'application/msword'
-    });
-    
+    const blob = new Blob(['\ufeff', sourceHTML], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -91,19 +85,12 @@ export default function LegalVietPage() {
     document.body.removeChild(link);
   };
 
-  // [수정] 엑셀(.xls) 다운로드 기능
   const exportToExcel = (text) => {
     const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body><table>";
     const footer = "</table></body></html>";
-    
-    // 텍스트를 줄 단위로 나눠서 엑셀 행(tr)으로 변환
     const rows = text.split('\n').map(line => `<tr><td>${line}</td></tr>`).join('');
     const sourceHTML = header + rows + footer;
-
-    const blob = new Blob(['\ufeff', sourceHTML], {
-      type: 'application/vnd.ms-excel'
-    });
-
+    const blob = new Blob(['\ufeff', sourceHTML], { type: 'application/vnd.ms-excel' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -188,6 +175,7 @@ export default function LegalVietPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '0 0 100px 0', fontFamily: 'Pretendard, sans-serif' }}>
       
+      {/* 네비게이션 바 */}
       <nav style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '0 40px', height: '70px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 100 }}>
         <div onClick={() => router.push('/')} style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
           <span style={{ background: '#da251d', color: '#fff', padding: '2px 8px', borderRadius: '4px' }}>L</span> LegalViet
@@ -198,9 +186,15 @@ export default function LegalVietPage() {
             <option value="en">English (ENG)</option>
           </select>
           {user ? (
-            <button onClick={handleLogout} style={{ fontSize: '14px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600' }}>로그아웃</button>
+            <>
+              <span style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>{userName || '사용자'}님</span>
+              <button onClick={handleLogout} style={{ fontSize: '14px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600' }}>로그아웃</button>
+            </>
           ) : (
-            <button onClick={() => router.push('/auth/login')} style={{ fontSize: '14px', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer' }}>로그인</button>
+            <>
+              <button onClick={() => router.push('/auth/login')} style={{ fontSize: '14px', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer' }}>로그인</button>
+              <button onClick={() => router.push('/auth/signup')} style={{ fontSize: '14px', fontWeight: '600', color: '#fff', background: '#0f172a', border: 'none', padding: '8px 20px', borderRadius: '8px', cursor: 'pointer' }}>회원가입</button>
+            </>
           )}
           <button onClick={() => router.push('/mypage')} style={{ background: 'none', border: '1px solid #0f172a', padding: '7px 15px', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>마이페이지</button>
         </div>
@@ -216,12 +210,22 @@ export default function LegalVietPage() {
             </header>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', marginBottom: '40px' }}>
+              {/* [복원] 분석 내역 없을 때 가이드 화면 */}
+              {chatHistory.length === 0 && (
+                <div style={{ padding: '80px 0', textAlign: 'center', background: '#fff', borderRadius: '24px', border: '2px dashed #e2e8f0' }}>
+                  <p style={{ color: '#94a3b8' }}>
+                    {lang === 'ko' ? '아직 분석 내역이 없습니다. 아래에서 내용을 입력하여 시작하세요.' : 'No analysis history yet. Please enter details below to start.'}
+                  </p>
+                </div>
+              )}
+
               {chatHistory.map((chat, index) => (
                 <div key={index} style={{ 
                   width: '100%', padding: '30px', borderRadius: '24px',
                   background: chat.role === 'user' ? 'transparent' : (chat.role === 'document' ? '#fffbeb' : '#fff'),
                   border: chat.role === 'user' ? 'none' : (chat.role === 'document' ? '2px solid #fcd34d' : '1px solid #e2e8f0'),
                   boxShadow: chat.role === 'user' ? 'none' : '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                  marginBottom: chat.role === 'user' ? '-10px' : '0'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
                     <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: chat.role === 'user' ? '#0f172a' : '#da251d', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>{chat.role === 'user' ? 'U' : 'L'}</div>
@@ -229,7 +233,6 @@ export default function LegalVietPage() {
                   </div>
                   <div style={{ whiteSpace: 'pre-wrap', fontSize: '16px', lineHeight: '1.8', color: '#334155' }}>{chat.text}</div>
                   
-                  {/* [수정] 출력 버튼 그룹 (워드/엑셀/복사) */}
                   {(chat.role === 'document' || chat.role === 'model') && (
                     <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
                       <button onClick={() => exportToWord(chat.text)} style={{ padding: '10px 18px', background: '#2b579a', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>📘 워드 다운로드</button>
@@ -270,6 +273,17 @@ export default function LegalVietPage() {
                 <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '15px' }}>Premium Service</h3>
                 <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: '1.6', marginBottom: '20px' }}>무제한 분석과 전문 서류 양식 저장 기능을 이용하시려면 구독이 필요합니다.</p>
                 <button onClick={() => setShowSubscriptionModal(true)} style={{ width: '100%', background: '#da251d', color: '#fff', border: 'none', padding: '12px', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}>멤버십 업그레이드</button>
+              </div>
+
+              {/* [복원] 서류 예시(도움말) 섹션 */}
+              <div style={{ background: '#fff', padding: '25px', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '12px' }}>💡 {lang === 'ko' ? '도움말' : 'Help'}</h3>
+                <ul style={{ padding: 0, margin: 0, listStyle: 'none', fontSize: '13px', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <li>• {lang === 'ko' ? '비즈니스 비자 관련 문의' : 'Business visa inquiries'}</li>
+                  <li>• {lang === 'ko' ? '베트남 법인 설립 서류 검토' : 'Vietnam corporate establishment document review'}</li>
+                  <li>• {lang === 'ko' ? '현지 고용 계약서 분석' : 'Local employment contract analysis'}</li>
+                  <li>• {lang === 'ko' ? '부동산 매매 계약 주의사항' : 'Real estate transaction precautions'}</li>
+                </ul>
               </div>
             </div>
           </aside>
