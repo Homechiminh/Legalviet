@@ -9,7 +9,7 @@ export default function SignupPage() {
   const [lang, setLang] = useState('ko');
   
   const [formData, setFormData] = useState({
-    name: '', // [수정] name 필드로 변경
+    name: '',
     email: '',
     password: '',
     user_type: 'normal',
@@ -20,9 +20,7 @@ export default function SignupPage() {
 
   useEffect(() => {
     const savedLang = localStorage.getItem('legalviet_lang');
-    if (savedLang) {
-      setLang(savedLang);
-    }
+    if (savedLang) setLang(savedLang);
   }, []);
 
   const handleSignup = async (e) => {
@@ -42,7 +40,7 @@ export default function SignupPage() {
           .from('profiles')
           .insert([{ 
             id: authData.user.id, 
-            name: formData.name, // [수정] name 컬럼에 저장
+            name: formData.name,
             email: formData.email,
             user_type: formData.user_type,
             phone: formData.phone, 
@@ -65,127 +63,141 @@ export default function SignupPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', padding: '20px', fontFamily: 'Pretendard, sans-serif' }}>
-      <div style={{ background: '#fff', padding: '40px', borderRadius: '24px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', width: '100%', maxWidth: '450px' }}>
+    <div className="signup-root">
+      <div className="signup-card">
         
-        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-          <div onClick={() => router.push('/')} style={{ cursor: 'pointer', marginBottom: '15px' }}>
-            <span style={{ background: '#da251d', color: '#fff', padding: '4px 10px', borderRadius: '6px', fontWeight: '900' }}>L</span>
-            <span style={{ fontSize: '22px', fontWeight: '900', marginLeft: '8px' }}>LegalViet</span>
+        {/* 로고 및 헤더 */}
+        <header className="signup-header">
+          <div className="logo" onClick={() => router.push('/')}>
+            <span className="logo-box">L</span>
+            <span className="logo-text">LegalViet</span>
           </div>
-          <h2 style={{ fontSize: '24px', fontWeight: '800' }}>
-            {lang === 'ko' ? '회원가입' : 'Sign Up'}
-          </h2>
-        </div>
+          <h2 className="title">{lang === 'ko' ? '회원가입' : 'Sign Up'}</h2>
+        </header>
 
-        {/* 유저 타입 선택 */}
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '25px' }}>
+        {/* 유저 타입 선택 토글 */}
+        <div className="type-toggle">
           <button 
             type="button"
+            className={formData.user_type === 'normal' ? 'active-normal' : ''}
             onClick={() => setFormData({...formData, user_type: 'normal'})}
-            style={{ 
-              flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', cursor: 'pointer', fontWeight: '700',
-              background: formData.user_type === 'normal' ? '#0f172a' : '#fff',
-              color: formData.user_type === 'normal' ? '#fff' : '#64748b'
-            }}
           >
-            {lang === 'ko' ? '일반 유저' : 'General User'}
+            {lang === 'ko' ? '일반 유저' : 'General'}
           </button>
           <button 
             type="button"
+            className={formData.user_type === 'lawfirm' ? 'active-lawfirm' : ''}
             onClick={() => setFormData({...formData, user_type: 'lawfirm'})}
-            style={{ 
-              flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', cursor: 'pointer', fontWeight: '700',
-              background: formData.user_type === 'lawfirm' ? '#da251d' : '#fff',
-              color: formData.user_type === 'lawfirm' ? '#fff' : '#64748b'
-            }}
           >
-            {lang === 'ko' ? '로펌 유저' : 'Law Firm User'}
+            {lang === 'ko' ? '로펌 유저' : 'Law Firm'}
           </button>
         </div>
 
-        <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          {/* [추가] 이름 입력 필드 */}
-          <div>
-            <label style={labelStyle}>{lang === 'ko' ? '이름 (필수)' : 'Name (Required)'}</label>
-            <input 
-              required 
-              type="text" 
-              placeholder={lang === 'ko' ? '홍길동' : 'Your Name'} 
-              value={formData.name} 
-              onChange={(e)=>setFormData({...formData, name: e.target.value})} 
-              style={inputStyle} 
-            />
+        <form onSubmit={handleSignup} className="signup-form">
+          <div className="input-group">
+            <label className="label">{lang === 'ko' ? '이름 (필수)' : 'Name (Required)'}</label>
+            <input required type="text" placeholder={lang === 'ko' ? '홍길동' : 'Full Name'} value={formData.name} onChange={(e)=>setFormData({...formData, name: e.target.value})} className="input-field" />
           </div>
 
-          <div>
-            <label style={labelStyle}>{lang === 'ko' ? '이메일 (필수)' : 'Email (Required)'}</label>
-            <input required type="email" placeholder="example@email.com" value={formData.email} onChange={(e)=>setFormData({...formData, email: e.target.value})} style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>{lang === 'ko' ? '비밀번호 (필수)' : 'Password (Required)'}</label>
-            <input required type="password" placeholder={lang === 'ko' ? '6자리 이상' : '6+ characters'} value={formData.password} onChange={(e)=>setFormData({...formData, password: e.target.value})} style={inputStyle} />
+          <div className="input-group">
+            <label className="label">{lang === 'ko' ? '이메일 (필수)' : 'Email (Required)'}</label>
+            <input required type="email" placeholder="example@email.com" value={formData.email} onChange={(e)=>setFormData({...formData, email: e.target.value})} className="input-field" />
           </div>
 
-          <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '15px', marginTop: '10px' }}>
-            <p style={{ fontSize: '12px', fontWeight: '800', color: formData.user_type === 'lawfirm' ? '#da251d' : '#0f172a', marginBottom: '4px' }}>
+          <div className="input-group">
+            <label className="label">{lang === 'ko' ? '비밀번호 (필수)' : 'Password (Required)'}</label>
+            <input required type="password" placeholder={lang === 'ko' ? '6자리 이상' : '6+ characters'} value={formData.password} onChange={(e)=>setFormData({...formData, password: e.target.value})} className="input-field" />
+          </div>
+
+          {/* 선택 입력 섹션 */}
+          <div className="optional-box">
+            <p className="optional-title" style={{ color: formData.user_type === 'lawfirm' ? '#da251d' : '#0f172a' }}>
               {lang === 'ko' ? '연락처 정보 (선택)' : 'Contact Info (Optional)'}
             </p>
-            <p style={{ fontSize: '11px', color: '#64748b', marginBottom: '12px', lineHeight: '1.4' }}>
-              {lang === 'ko' 
-                ? '* 추후 로펌 매칭을 원하실 경우 입력해 주시면 편리합니다.' 
-                : '* Providing this will make law firm matching easier later.'}
+            <p className="optional-desc">
+              {lang === 'ko' ? '* 매칭 지원 시 활용됩니다.' : '* Used for expert matching.'}
             </p>
             
-            <div style={{ marginBottom: '10px' }}>
-              <label style={subLabelStyle}>{lang === 'ko' ? '연락처' : 'Phone Number'}</label>
-              <input type="text" placeholder="010-0000-0000" value={formData.phone} onChange={(e)=>setFormData({...formData, phone: e.target.value})} style={inputStyle} />
+            <div className="input-group">
+              <label className="sub-label">{lang === 'ko' ? '연락처' : 'Phone'}</label>
+              <input type="text" placeholder="010-0000-0000" value={formData.phone} onChange={(e)=>setFormData({...formData, phone: e.target.value})} className="input-field" />
             </div>
 
-            <div>
-              <label style={subLabelStyle}>{lang === 'ko' ? '채팅앱 및 ID' : 'Chat App & ID'}</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <select 
-                  value={formData.chat_type} 
-                  onChange={(e) => setFormData({...formData, chat_type: e.target.value})}
-                  style={{ ...inputStyle, width: '120px', fontSize: '13px', padding: '10px' }}
-                >
+            <div className="input-group">
+              <label className="sub-label">{lang === 'ko' ? '채팅앱 ID' : 'Chat ID'}</label>
+              <div className="chat-input-row">
+                <select value={formData.chat_type} onChange={(e) => setFormData({...formData, chat_type: e.target.value})} className="chat-select">
                   <option value="kakao">카카오톡</option>
                   <option value="telegram">텔레그램</option>
                   <option value="whatsapp">WhatsApp</option>
                   <option value="zalo">Zalo</option>
                 </select>
-                <input 
-                  type="text" 
-                  placeholder={lang === 'ko' ? '아이디 입력' : 'Enter ID'} 
-                  value={formData.chatId} 
-                  onChange={(e)=>setFormData({...formData, chatId: e.target.value})} 
-                  style={{ ...inputStyle, flex: 1 }} 
-                />
+                <input type="text" placeholder="ID" value={formData.chatId} onChange={(e)=>setFormData({...formData, chatId: e.target.value})} className="input-field" style={{ flex: 1 }} />
               </div>
             </div>
           </div>
 
-          <button type="submit" disabled={loading} style={{ 
-            width: '100%', padding: '16px', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', fontSize: '16px', marginTop: '10px',
-            background: formData.user_type === 'lawfirm' ? '#da251d' : '#0f172a',
-            color: '#fff'
-          }}>
-            {loading ? (lang === 'ko' ? '처리 중...' : 'Processing...') : (lang === 'ko' ? '가입하기' : 'Sign Up')}
+          <button type="submit" disabled={loading} className={`submit-btn ${formData.user_type === 'lawfirm' ? 'lawfirm-btn' : ''}`}>
+            {loading ? (lang === 'ko' ? '처리 중...' : 'Processing...') : (lang === 'ko' ? '가입하기' : 'Create Account')}
           </button>
         </form>
 
-        <div style={{ marginTop: '25px', textAlign: 'center', fontSize: '14px', color: '#64748b' }}>
+        <footer className="signup-footer">
           {lang === 'ko' ? '이미 계정이 있으신가요? ' : 'Already have an account? '}
-          <span onClick={() => router.push('/auth/login')} style={{ color: '#da251d', cursor: 'pointer', fontWeight: '600' }}>
+          <span onClick={() => router.push('/auth/login')} className="login-link">
             {lang === 'ko' ? '로그인' : 'Login'}
           </span>
-        </div>
+        </footer>
       </div>
+
+      <style jsx>{`
+        .signup-root { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f8fafc; padding: 20px; font-family: 'Pretendard', sans-serif; }
+        .signup-card { background: #fff; padding: 40px; border-radius: 28px; box-shadow: 0 15px 35px rgba(15, 23, 42, 0.08); width: 100%; max-width: 480px; }
+        
+        .signup-header { text-align: center; margin-bottom: 25px; }
+        .logo { cursor: pointer; display: inline-flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .logo-box { background: #da251d; color: #fff; padding: 4px 10px; border-radius: 8px; font-weight: 900; font-size: 18px; }
+        .logo-text { font-size: 24px; font-weight: 900; color: #0f172a; }
+        .title { font-size: 24px; font-weight: 800; color: #0f172a; }
+
+        /* 토글 버튼 */
+        .type-toggle { display: flex; gap: 10px; margin-bottom: 25px; }
+        .type-toggle button { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; background: #fff; color: #64748b; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .active-normal { background: #0f172a !important; color: #fff !important; border-color: #0f172a !important; }
+        .active-lawfirm { background: #da251d !important; color: #fff !important; border-color: #da251d !important; }
+
+        .signup-form { display: flex; flex-direction: column; gap: 18px; }
+        .input-group { display: flex; flex-direction: column; gap: 6px; }
+        .label { font-size: 14px; font-weight: 700; color: #334155; margin-left: 4px; }
+        .sub-label { font-size: 13px; color: #64748b; margin-left: 4px; }
+        
+        .input-field { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid #e2e8f0; outline: none; font-size: 16px; background: #f8fafc; transition: 0.2s; }
+        .input-field:focus { border-color: #0f172a; background: #fff; box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.05); }
+
+        /* 선택 입력창 박스 */
+        .optional-box { background: #f8fafc; padding: 20px; border-radius: 20px; border: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 15px; }
+        .optional-title { font-size: 14px; font-weight: 800; }
+        .optional-desc { font-size: 11px; color: #94a3b8; margin-top: -10px; }
+        .chat-input-row { display: flex; gap: 8px; }
+        .chat-select { width: 110px; border-radius: 12px; border: 1px solid #e2e8f0; padding: 10px; font-size: 13px; outline: none; }
+
+        .submit-btn { width: 100%; padding: 16px; border: none; border-radius: 14px; font-weight: 800; cursor: pointer; font-size: 17px; margin-top: 10px; background: #0f172a; color: #fff; transition: 0.2s; }
+        .lawfirm-btn { background: #da251d; }
+        .submit-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .signup-footer { margin-top: 25px; text-align: center; font-size: 14px; color: #64748b; }
+        .login-link { color: #da251d; cursor: pointer; font-weight: 700; margin-left: 5px; text-decoration: underline; }
+
+        /* 🚨 모바일 최적화 🚨 */
+        @media (max-width: 480px) {
+          .signup-root { padding: 10px; background: #fff; }
+          .signup-card { padding: 20px 10px; box-shadow: none; }
+          .type-toggle button { padding: 10px; font-size: 13px; }
+          .optional-box { padding: 15px; }
+          .chat-input-row { flex-direction: column; }
+          .chat-select { width: 100%; }
+        }
+      `}</style>
     </div>
   );
 }
-
-const labelStyle = { fontSize: '14px', fontWeight: '700', color: '#334155', marginBottom: '5px', display: 'block' };
-const subLabelStyle = { fontSize: '13px', color: '#64748b', marginBottom: '5px', display: 'block' };
-const inputStyle = { width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '15px' };
