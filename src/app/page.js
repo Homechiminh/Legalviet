@@ -3,8 +3,18 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
+// 분리된 컴포넌트들 임포트
+import { t } from '@/components/Translations';
+import Navbar from '@/components/Navbar';
+import ChatList from '@/components/ChatList';
+import AnalysisForm from '@/components/AnalysisForm';
+import Sidebar from '@/components/Sidebar';
+import Footer from '@/components/Footer';
+
 export default function LegalVietPage() {
   const router = useRouter();
+  
+  // --- [상태 관리] ---
   const [content, setContent] = useState('');
   const [file, setFile] = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
@@ -12,11 +22,10 @@ export default function LegalVietPage() {
   const [loadingStep, setLoadingStep] = useState(0); 
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [lang, setLang] = useState('ko');
-
   const [user, setUser] = useState(null);
   const [userName, setUserName] = useState('');
 
-  // 1. 페이지 로드시 유저 정보 및 [대화 내역] 불러오기
+  // --- [초기 로드: 언어, 유저, 히스토리] ---
   useEffect(() => {
     const savedLang = localStorage.getItem('legalviet_lang');
     if (savedLang) setLang(savedLang);
@@ -29,6 +38,7 @@ export default function LegalVietPage() {
         if (session) {
           setUser(session.user);
           
+          // 프로필에서 이름 가져오기
           const { data: profile } = await supabase
             .from('profiles')
             .select('name')
@@ -37,6 +47,7 @@ export default function LegalVietPage() {
             
           if (profile?.name) setUserName(profile.name);
 
+          // 기존 분석 내역 로드
           const { data: cases } = await supabase
             .from('legal_cases')
             .select('*')
@@ -58,7 +69,7 @@ export default function LegalVietPage() {
     checkUser();
   }, []);
 
-  // 2. 로딩 메시지 순환 효과
+  // --- [로딩 애니메이션 컨트롤] ---
   useEffect(() => {
     let interval;
     if (loading) {
@@ -71,56 +82,36 @@ export default function LegalVietPage() {
     return () => clearInterval(interval);
   }, [loading]);
 
-  const exportToWord = (text) => {
-    const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>LegalViet Document</title></head><body>";
-    const footer = "</body></html>";
-    const sourceHTML = header + text.replace(/\n/g, "<br/>") + footer;
-    const blob = new Blob(['\ufeff', sourceHTML], { type: 'application/msword' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `LegalViet_Document_${Date.now()}.doc`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // --- [파일 내보내기 로직] ---
+  const handleExport = (type, text) => {
+    if (type === 'word') {
+      const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body>";
+      const footer = "</body></html>";
+      const sourceHTML = header + text.replace(/\n/g, "<br/>") + footer;
+      const blob = new Blob(['\ufeff', sourceHTML], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `LegalViet_Doc_${Date.now()}.doc`;
+      link.click();
+    } else if (type === 'excel') {
+      const header = "<html><head><meta charset='utf-8'></head><body><table>";
+      const footer = "</table></body></html>";
+      const rows = text.split('\n').map(line => `<tr><td>${line}</td></tr>`).join('');
+      const sourceHTML = header + rows + footer;
+      const blob = new Blob(['\ufeff', sourceHTML], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `LegalViet_Sheet_${Date.now()}.xls`;
+      link.click();
+    }
   };
 
-  const exportToExcel = (text) => {
-    const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'></head><body><table>";
-    const footer = "</table></body></html>";
-    const rows = text.split('\n').map(line => `<tr><td>${line}</td></tr>`).join('');
-    const sourceHTML = header + rows + footer;
-    const blob = new Blob(['\ufeff', sourceHTML], { type: 'application/vnd.ms-excel' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `LegalViet_Analysis_${Date.now()}.xls`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    alert(lang === 'ko' ? '복사되었습니다!' : 'Copied!');
-  };
-
-  const handleLangChange = (e) => {
-    const newLang = e.target.value;
-    setLang(newLang);
-    localStorage.setItem('legalviet_lang', newLang);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setUserName('');
-    setChatHistory([]);
-    router.refresh();
-  };
-
-  const performAnalysis = async (promptText, isDoc) => {
-    if (loading) return; // 중복 클릭 방지
+  // --- [핵심: 분석 실행 로직] ---
+  const performAnalysis = async (promptText = content, isDoc = false) => {
+    if (loading || (!isDoc && !promptText.trim())) return;
+    
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { router.push('/auth/login'); return; }
 
@@ -129,7 +120,8 @@ export default function LegalVietPage() {
     let fileUrl = null;
 
     try {
-      if (file) {
+      // 1. 파일 업로드 처리
+      if (file && !isDoc) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${userId}_${Date.now()}.${fileExt}`;
         await supabase.storage.from('legal-files').upload(fileName, file);
@@ -137,12 +129,14 @@ export default function LegalVietPage() {
         fileUrl = publicUrl;
       }
 
+      // 2. 유저 타입 확인
       const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', userId).maybeSingle();
 
       if (!isDoc) {
         setChatHistory(prev => [...prev, { role: 'user', text: promptText }]);
       }
 
+      // 3. AI API 호출
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -161,156 +155,134 @@ export default function LegalVietPage() {
 
       if (response.status === 403) {
         setShowSubscriptionModal(true);
-        setChatHistory(prev => prev.slice(0, -1));
+        if (!isDoc) setChatHistory(prev => prev.slice(0, -1));
       } else if (response.ok) {
         setChatHistory(prev => [...prev, { role: isDoc ? 'document' : 'model', text: data.analysis }]);
         if (!isDoc) { setContent(''); setFile(null); }
       }
     } catch (error) {
-      alert('에러 발생');
+      alert(lang === 'ko' ? '분석 중 에러가 발생했습니다.' : 'Error during analysis.');
     } finally {
       setLoading(false);
     }
   };
 
-  // [수정] 서류 생성 시 중복 클릭 및 로직 매끄럽게 처리
-  const handleGenerateDocument = (lastAnalysis) => {
-    if (loading) return;
-    const docPrompt = `아래 분석 내용을 바탕으로 관공서 제출용 베트남어 공식 서류 초안을 작성해줘:\n\n${lastAnalysis}`;
-    performAnalysis(docPrompt, true);
-  };
-
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '0 0 100px 0', fontFamily: 'Pretendard, sans-serif' }}>
-      
-      <nav style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '0 40px', height: '70px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 100 }}>
-        <div onClick={() => router.push('/')} style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-          <span style={{ background: '#da251d', color: '#fff', padding: '2px 8px', borderRadius: '4px' }}>L</span> LegalViet
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <select value={lang} onChange={handleLangChange} style={{ border: '1px solid #e2e8f0', background: '#fff', borderRadius: '8px', padding: '6px 12px', fontSize: '14px' }}>
-            <option value="ko">한국어 (KOR)</option>
-            <option value="en">English (ENG)</option>
-          </select>
-          {user ? (
-            <>
-              <span style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>{userName || '사용자'}님</span>
-              <button onClick={handleLogout} style={{ fontSize: '14px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '600' }}>로그아웃</button>
-            </>
-          ) : (
-            <>
-              <button onClick={() => router.push('/auth/login')} style={{ fontSize: '14px', color: '#64748b', background: 'none', border: 'none', cursor: 'pointer' }}>로그인</button>
-              <button onClick={() => router.push('/auth/signup')} style={{ fontSize: '14px', fontWeight: '600', color: '#fff', background: '#0f172a', border: 'none', padding: '8px 20px', borderRadius: '8px', cursor: 'pointer' }}>회원가입</button>
-            </>
-          )}
-          <button onClick={() => router.push('/mypage')} style={{ background: 'none', border: '1px solid #0f172a', padding: '7px 15px', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>마이페이지</button>
-        </div>
-      </nav>
+    <div className="layout-root">
+      {/* 1. 상단바 부품 */}
+      <Navbar 
+        lang={lang} 
+        setLang={(newLang) => {
+          setLang(newLang);
+          localStorage.setItem('legalviet_lang', newLang);
+        }} 
+        user={user} 
+        userName={userName}
+        onLogout={async () => {
+          await supabase.auth.signOut();
+          window.location.reload();
+        }}
+        onMyPage={() => router.push('/mypage')}
+        onLogin={() => router.push('/auth/login')}
+      />
 
-      <div style={{ maxWidth: '1200px', margin: '40px auto', padding: '0 20px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '30px' }}>
+      {/* 2. 메인 영역 */}
+      <div className="main-container">
+        <div className="responsive-grid">
           
-          <main>
-            <header style={{ marginBottom: '30px' }}>
-              <h1 style={{ fontSize: '36px', fontWeight: '800', color: '#0f172a', marginBottom: '10px' }}>LegalViet</h1>
-              <p style={{ fontSize: '18px', color: '#64748b' }}>베트남 행정 및 법률 상황 분석 지원</p>
+          <main className="chat-section">
+            <header className="page-intro">
+              <h1 className="brand-title">LegalViet</h1>
+              <p className="brand-subtitle">{t[lang].subtitle}</p>
             </header>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', marginBottom: '40px' }}>
-              {chatHistory.length === 0 && (
-                <div style={{ padding: '80px 0', textAlign: 'center', background: '#fff', borderRadius: '24px', border: '2px dashed #e2e8f0' }}>
-                  <p style={{ color: '#94a3b8' }}>
-                    {lang === 'ko' ? '아직 분석 내역이 없습니다. 아래에서 내용을 입력하여 시작하세요.' : 'No analysis history yet. Please enter details below to start.'}
-                  </p>
-                </div>
-              )}
+            {/* 3. 채팅 내역 부품 */}
+            <ChatList 
+              history={chatHistory} 
+              lang={lang} 
+              onExport={handleExport}
+              onCopy={(text) => {
+                navigator.clipboard.writeText(text);
+                alert(lang === 'ko' ? '복사되었습니다!' : 'Copied!');
+              }}
+              onMakeDoc={(lastAnalysis) => {
+                const docPrompt = lang === 'ko' 
+                  ? `아래 분석 내용을 바탕으로 관공서 제출용 베트남어 공식 서류 초안을 작성해줘:\n\n${lastAnalysis}`
+                  : `Based on the following analysis, draft an official Vietnamese document for government submission:\n\n${lastAnalysis}`;
+                performAnalysis(docPrompt, true);
+              }}
+            />
 
-              {chatHistory.map((chat, index) => (
-                <div key={index} style={{ 
-                  width: '100%', padding: '30px', borderRadius: '24px',
-                  background: chat.role === 'user' ? 'transparent' : (chat.role === 'document' ? '#fffbeb' : '#fff'),
-                  border: chat.role === 'user' ? 'none' : (chat.role === 'document' ? '2px solid #fcd34d' : '1px solid #e2e8f0'),
-                  boxShadow: chat.role === 'user' ? 'none' : '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-                  marginBottom: chat.role === 'user' ? '-10px' : '0'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: chat.role === 'user' ? '#0f172a' : '#da251d', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>{chat.role === 'user' ? 'U' : 'L'}</div>
-                    <span style={{ fontWeight: '700', fontSize: '14px' }}>{chat.role === 'user' ? '질문' : (chat.role === 'document' ? '베트남어 서류 초안' : 'AI 분석')}</span>
-                  </div>
-                  <div style={{ whiteSpace: 'pre-wrap', fontSize: '16px', lineHeight: '1.8', color: '#334155' }}>{chat.text}</div>
-                  
-                  {/* [정정] 서류 양식(document)일 때만 다운로드 버튼 노출 */}
-                  {chat.role === 'document' && (
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                      <button onClick={() => exportToWord(chat.text)} style={{ padding: '10px 18px', background: '#2b579a', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>📘 워드 다운로드</button>
-                      <button onClick={() => exportToExcel(chat.text)} style={{ padding: '10px 18px', background: '#217346', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>📗 엑셀 다운로드</button>
-                      <button onClick={() => copyToClipboard(chat.text)} style={{ padding: '10px 18px', background: '#e2e8f0', color: '#0f172a', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>📋 복사</button>
-                    </div>
-                  )}
-
-                  {/* [정정] AI 분석(model) 결과일 때만 '서류 만들기' 버튼 노출 */}
-                  {chat.role === 'model' && index === chatHistory.length - 1 && (
-                    <button onClick={() => handleGenerateDocument(chat.text)} style={{ marginTop: '20px', padding: '12px 24px', background: '#da251d', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }}>🇻🇳 베트남어 서류 만들기</button>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <form onSubmit={(e) => { e.preventDefault(); performAnalysis(content, false); }} style={{ background: '#fff', padding: '30px', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0' }}>
-              <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="분석이 필요한 내용을 자세히 적어주세요..." style={{ width: '100%', height: '180px', padding: '20px', borderRadius: '15px', border: '1px solid #f1f5f9', background: '#f8fafc', fontSize: '16px', outline: 'none', resize: 'none' }} />
-              <div style={{ display: 'flex', gap: '15px', marginTop: '20px' }}>
-                <div style={{ flex: 1, position: 'relative', border: '2px dashed #e2e8f0', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', color: '#64748b' }}>
-                  <input type="file" onChange={(e) => setFile(e.target.files[0])} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
-                  {file ? `✅ ${file.name}` : '📁 파일 업로드'}
-                </div>
-                <button type="submit" disabled={loading} style={{ flex: 1.5, background: loading ? '#1e293b' : '#0f172a', color: '#fff', height: '60px', borderRadius: '15px', border: 'none', fontWeight: '800', fontSize: '18px', cursor: 'pointer' }}>
-                  {loading ? (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                      <div className="pulse-loader"></div>
-                      <span style={{ fontSize: '15px' }}>{loadingStep === 0 ? "⚖️ 조회 중..." : loadingStep === 1 ? "🔍 분석 중..." : "📝 작성 중..."}</span>
-                    </div>
-                  ) : "분석 시작하기"}
-                </button>
-              </div>
-            </form>
+            {/* 4. 입력창 부품 */}
+            <AnalysisForm 
+              content={content}
+              setContent={setContent}
+              file={file}
+              setFile={setFile}
+              loading={loading}
+              loadingStep={loadingStep}
+              lang={lang}
+              onSubmit={() => performAnalysis()}
+            />
           </main>
 
-          <aside>
-            <div style={{ position: 'sticky', top: '110px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div style={{ background: '#0f172a', color: '#fff', padding: '25px', borderRadius: '24px' }}>
-                <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '15px' }}>Premium Service</h3>
-                <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: '1.6', marginBottom: '20px' }}>무제한 분석과 전문 서류 양식 저장 기능을 이용하시려면 구독이 필요합니다.</p>
-                <button onClick={() => setShowSubscriptionModal(true)} style={{ width: '100%', background: '#da251d', color: '#fff', border: 'none', padding: '12px', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}>멤버십 업그레이드</button>
-              </div>
-
-              <div style={{ background: '#fff', padding: '25px', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '12px' }}>💡 도움말</h3>
-                <ul style={{ padding: 0, margin: 0, listStyle: 'none', fontSize: '13px', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <li>• 비즈니스 비자 관련 문의</li>
-                  <li>• 베트남 법인 설립 서류 검토</li>
-                  <li>• 현지 고용 계약서 분석</li>
-                  <li>• 부동산 매매 계약 주의사항</li>
-                </ul>
-              </div>
-            </div>
-          </aside>
+          {/* 5. 사이드바 부품 */}
+          <Sidebar 
+            lang={lang} 
+            onUpgrade={() => setShowSubscriptionModal(true)} 
+          />
         </div>
       </div>
 
+      {/* 6. 푸터 부품 */}
+      <Footer lang={lang} />
+
+      {/* 7. 구독 안내 모달 */}
       {showSubscriptionModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ background: 'white', padding: '40px', borderRadius: '24px', maxWidth: '400px', width: '90%', textAlign: 'center' }}>
-            <div style={{ fontSize: '40px', marginBottom: '20px' }}>🚀</div>
-            <h2 style={{ fontSize: '22px', fontWeight: '800', marginBottom: '12px' }}>무료 체험 완료</h2>
-            <button onClick={() => window.open('https://pf.kakao.com/...', '_blank')} style={{ width: '100%', padding: '14px', background: '#da251d', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer', marginBottom: '12px' }}>구독 문의 (카카오톡)</button>
-            <button onClick={() => setShowSubscriptionModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>닫기</button>
+        <div className="modal-overlay">
+          <div className="modal-box">
+            <div className="modal-icon">🚀</div>
+            <h2 className="modal-title">{t[lang].modalTitle}</h2>
+            <button 
+              onClick={() => window.open('https://pf.kakao.com/...', '_blank')} 
+              className="kakao-btn"
+            >
+              {t[lang].modalBtn}
+            </button>
+            <button 
+              onClick={() => setShowSubscriptionModal(false)} 
+              className="close-btn"
+            >
+              {t[lang].modalClose}
+            </button>
           </div>
         </div>
       )}
 
+      {/* --- [공통 레이아웃 스타일] --- */}
       <style jsx>{`
-        .pulse-loader { width: 10px; height: 10px; background-color: #fff; border-radius: 50%; animation: pulse 1.5s infinite ease-in-out; }
-        @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); } }
+        .layout-root { min-height: 100vh; display: flex; flex-direction: column; background: #f8fafc; }
+        .main-container { flex-grow: 1; width: 100%; max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+        .responsive-grid { display: grid; grid-template-columns: 1fr 350px; gap: 30px; }
+        
+        .page-intro { margin-bottom: 30px; }
+        .brand-title { font-size: 36px; font-weight: 800; color: #0f172a; margin-bottom: 8px; }
+        .brand-subtitle { font-size: 18px; color: #64748b; }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-box { background: white; padding: 40px; border-radius: 24px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+        .modal-icon { font-size: 40px; margin-bottom: 20px; }
+        .modal-title { font-size: 22px; font-weight: 800; color: #0f172a; margin-bottom: 20px; }
+        .kakao-btn { width: 100%; padding: 14px; background: #da251d; color: #fff; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; margin-bottom: 12px; transition: 0.2s; }
+        .kakao-btn:hover { background: #b91c1c; }
+        .close-btn { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 14px; }
+
+        /* 모바일 반응형 */
+        @media (max-width: 900px) {
+          .responsive-grid { grid-template-columns: 1fr; }
+          .main-container { margin: 20px auto; }
+          .chat-section { order: 1; }
+        }
       `}</style>
     </div>
   );
