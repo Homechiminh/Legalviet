@@ -120,6 +120,7 @@ export default function LegalVietPage() {
   };
 
   const performAnalysis = async (promptText, isDoc) => {
+    if (loading) return; // 중복 클릭 방지
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { router.push('/auth/login'); return; }
 
@@ -172,10 +173,16 @@ export default function LegalVietPage() {
     }
   };
 
+  // [수정] 서류 생성 시 중복 클릭 및 로직 매끄럽게 처리
+  const handleGenerateDocument = (lastAnalysis) => {
+    if (loading) return;
+    const docPrompt = `아래 분석 내용을 바탕으로 관공서 제출용 베트남어 공식 서류 초안을 작성해줘:\n\n${lastAnalysis}`;
+    performAnalysis(docPrompt, true);
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '0 0 100px 0', fontFamily: 'Pretendard, sans-serif' }}>
       
-      {/* 네비게이션 바 */}
       <nav style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '0 40px', height: '70px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 100 }}>
         <div onClick={() => router.push('/')} style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
           <span style={{ background: '#da251d', color: '#fff', padding: '2px 8px', borderRadius: '4px' }}>L</span> LegalViet
@@ -210,7 +217,6 @@ export default function LegalVietPage() {
             </header>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', marginBottom: '40px' }}>
-              {/* [복원] 분석 내역 없을 때 가이드 화면 */}
               {chatHistory.length === 0 && (
                 <div style={{ padding: '80px 0', textAlign: 'center', background: '#fff', borderRadius: '24px', border: '2px dashed #e2e8f0' }}>
                   <p style={{ color: '#94a3b8' }}>
@@ -233,7 +239,8 @@ export default function LegalVietPage() {
                   </div>
                   <div style={{ whiteSpace: 'pre-wrap', fontSize: '16px', lineHeight: '1.8', color: '#334155' }}>{chat.text}</div>
                   
-                  {(chat.role === 'document' || chat.role === 'model') && (
+                  {/* [정정] 서류 양식(document)일 때만 다운로드 버튼 노출 */}
+                  {chat.role === 'document' && (
                     <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
                       <button onClick={() => exportToWord(chat.text)} style={{ padding: '10px 18px', background: '#2b579a', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>📘 워드 다운로드</button>
                       <button onClick={() => exportToExcel(chat.text)} style={{ padding: '10px 18px', background: '#217346', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>📗 엑셀 다운로드</button>
@@ -241,8 +248,9 @@ export default function LegalVietPage() {
                     </div>
                   )}
 
+                  {/* [정정] AI 분석(model) 결과일 때만 '서류 만들기' 버튼 노출 */}
                   {chat.role === 'model' && index === chatHistory.length - 1 && (
-                    <button onClick={() => performAnalysis(`아래 분석 내용을 바탕으로 공식 서류 초안을 작성해줘:\n\n${chat.text}`, true)} style={{ marginTop: '20px', padding: '12px 24px', background: '#da251d', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }}>🇻🇳 베트남어 서류 만들기</button>
+                    <button onClick={() => handleGenerateDocument(chat.text)} style={{ marginTop: '20px', padding: '12px 24px', background: '#da251d', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer' }}>🇻🇳 베트남어 서류 만들기</button>
                   )}
                 </div>
               ))}
@@ -275,14 +283,13 @@ export default function LegalVietPage() {
                 <button onClick={() => setShowSubscriptionModal(true)} style={{ width: '100%', background: '#da251d', color: '#fff', border: 'none', padding: '12px', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}>멤버십 업그레이드</button>
               </div>
 
-              {/* [복원] 서류 예시(도움말) 섹션 */}
               <div style={{ background: '#fff', padding: '25px', borderRadius: '24px', border: '1px solid #e2e8f0' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '12px' }}>💡 {lang === 'ko' ? '도움말' : 'Help'}</h3>
+                <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '12px' }}>💡 도움말</h3>
                 <ul style={{ padding: 0, margin: 0, listStyle: 'none', fontSize: '13px', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <li>• {lang === 'ko' ? '비즈니스 비자 관련 문의' : 'Business visa inquiries'}</li>
-                  <li>• {lang === 'ko' ? '베트남 법인 설립 서류 검토' : 'Vietnam corporate establishment document review'}</li>
-                  <li>• {lang === 'ko' ? '현지 고용 계약서 분석' : 'Local employment contract analysis'}</li>
-                  <li>• {lang === 'ko' ? '부동산 매매 계약 주의사항' : 'Real estate transaction precautions'}</li>
+                  <li>• 비즈니스 비자 관련 문의</li>
+                  <li>• 베트남 법인 설립 서류 검토</li>
+                  <li>• 현지 고용 계약서 분석</li>
+                  <li>• 부동산 매매 계약 주의사항</li>
                 </ul>
               </div>
             </div>
