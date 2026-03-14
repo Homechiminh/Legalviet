@@ -10,6 +10,8 @@ export const t = {
     step0: "⚖️ 조회 중...", step1: "🔍 분석 중...", step2: "📝 작성 중...",
     premiumTitle: "Premium Service", premiumDesc: "무제한 분석과 전문 서류 양식 저장 기능",
     premiumBtn: "멤버십 업그레이드", helpTitle: "💡 도움말",
+    help1: "• 비즈니스 비자 관련 문의", help2: "• 베트남 법인 설립 서류 검토",
+    help3: "• 현지 고용 계약서 분석", help4: "• 부동산 매매 계약 주의사항",
     footerDesc: "LegalViet은 베트남 비즈니스 성공을 위한 AI 분석 파트너입니다.",
     copyright: "© 2026 LegalViet. All rights reserved."
   },
@@ -24,6 +26,8 @@ export const t = {
     step0: "⚖️ Searching...", step1: "🔍 Analyzing...", step2: "📝 Drafting...",
     premiumTitle: "Premium Service", premiumDesc: "Unlimited analysis and saving features.",
     premiumBtn: "Upgrade", helpTitle: "💡 Help",
+    help1: "• Business Visa Inquiries", help2: "• Company Incorporation Review",
+    help3: "• Employment Contract Analysis", help4: "• Real Estate Purchase Notices",
     footerDesc: "LegalViet is your AI partner for business in Vietnam.",
     copyright: "© 2026 LegalViet. All rights reserved."
   }
