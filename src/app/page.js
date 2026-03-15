@@ -184,20 +184,22 @@ export default function LegalVietPage() {
         onLogin={() => router.push('/auth/login')}
       />
 
-      {/* 1-2. 파트너 로펌 배너 */}
-      <PartnerBanner lang={lang} />
-
       {/* 2. 메인 영역 */}
       <div className="main-container">
         <div className="responsive-grid">
           
           <main className="chat-section">
+            {/* [재배치] 파트너 배너를 타이틀 아래로 이동 */}
             <header className="page-intro">
               <h1 className="brand-title">LegalViet</h1>
               <p className="brand-subtitle">{currentT.subtitle}</p>
+              
+              <div className="banner-wrapper">
+                <PartnerBanner lang={lang} />
+              </div>
             </header>
 
-            {/* 3. 채팅 내역 부품 (loading 전달) */}
+            {/* 3. 채팅 내역 부품 */}
             <ChatList 
               history={chatHistory} 
               lang={lang} 
@@ -269,7 +271,15 @@ export default function LegalVietPage() {
         
         .page-intro { margin-bottom: 30px; }
         .brand-title { font-size: 36px; font-weight: 800; color: #0f172a; margin-bottom: 8px; }
-        .brand-subtitle { font-size: 18px; color: #64748b; }
+        .brand-subtitle { font-size: 18px; color: #64748b; margin-bottom: 25px; } /* 배너와의 간격을 위해 margin-bottom 추가 */
+
+        .banner-wrapper { 
+          margin-top: 10px;
+          border-radius: 20px;
+          overflow: hidden;
+          background: #fff;
+          border: 1px solid #e2e8f0;
+        }
 
         .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; }
         .modal-box { background: white; padding: 40px; border-radius: 24px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
