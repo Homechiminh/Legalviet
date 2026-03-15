@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 // 분리된 컴포넌트들 임포트
 import { t } from '@/components/Translations';
 import Navbar from '@/components/Navbar';
-import PartnerBanner from '@/components/PartnerBanner'; // 배너 추가
+import PartnerBanner from '@/components/PartnerBanner';
 import ChatList from '@/components/ChatList';
 import AnalysisForm from '@/components/AnalysisForm';
 import Sidebar from '@/components/Sidebar';
@@ -184,7 +184,7 @@ export default function LegalVietPage() {
         onLogin={() => router.push('/auth/login')}
       />
 
-      {/* 1-2. 파트너 로펌 배너 (Navbar 바로 아래 배치) */}
+      {/* 1-2. 파트너 로펌 배너 */}
       <PartnerBanner lang={lang} />
 
       {/* 2. 메인 영역 */}
@@ -197,10 +197,11 @@ export default function LegalVietPage() {
               <p className="brand-subtitle">{currentT.subtitle}</p>
             </header>
 
-            {/* 3. 채팅 내역 부품 */}
+            {/* 3. 채팅 내역 부품 (loading 전달) */}
             <ChatList 
               history={chatHistory} 
               lang={lang} 
+              loading={loading}
               onExport={handleExport}
               onCopy={(text) => {
                 navigator.clipboard.writeText(text);
