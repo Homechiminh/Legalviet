@@ -10,6 +10,13 @@ export default function ChatList({ history, lang, onExport, onCopy, onMakeDoc })
     );
   }
 
+  // 상담 링크 클릭 핸들러 (사장님 직통)
+  const handleConsultantClick = (type) => {
+    const KAKAO_URL = "https://pf.kakao.com/..."; // 사장님 카톡 링크
+    const TELEGRAM_URL = "https://t.me/Legalviet"; // 사장님 텔레그램 링크
+    window.open(type === 'kakao' ? KAKAO_URL : TELEGRAM_URL, '_blank');
+  };
+
   return (
     <div className="chat-flow">
       {history.map((chat, index) => (
@@ -35,6 +42,23 @@ export default function ChatList({ history, lang, onExport, onCopy, onMakeDoc })
           )}
         </div>
       ))}
+
+      {/* [추가] 분석 완료 후 전문가 직접 상담 섹션 */}
+      <div className="consult-section">
+        <h3 className="consult-title">
+          {lang === 'ko' ? '⚖️ 전문가 추가 검토 요청' : '⚖️ Request Expert Review'}
+        </h3>
+        <p className="consult-desc">
+          {lang === 'ko' 
+            ? '분석 결과에 대해 실무 전문가의 직접적인 조언이 필요하신가요?' 
+            : 'Do you need direct advice from a practitioner regarding the results?'}
+        </p>
+        <div className="consult-btns">
+          <button onClick={() => handleConsultantClick('kakao')} className="btn-kakao">KakaoTalk</button>
+          <button onClick={() => handleConsultantClick('telegram')} className="btn-telegram">Telegram</button>
+        </div>
+      </div>
+
       <style jsx>{`
         .chat-flow { display: flex; flex-direction: column; gap: 20px; margin-bottom: 40px; }
         .bubble { padding: 25px; border-radius: 24px; background: #fff; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
@@ -48,7 +72,40 @@ export default function ChatList({ history, lang, onExport, onCopy, onMakeDoc })
         .action-row button { padding: 8px 16px; border: none; border-radius: 8px; color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; }
         .btn-word { background: #2b579a; } .btn-excel { background: #217346; } .btn-copy { background: #e2e8f0 !important; color: #0f172a !important; }
         .make-doc-btn { width: 100%; margin-top: 20px; padding: 14px; background: #da251d; color: #fff; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; }
-        @media (max-width: 600px) { .bubble { padding: 20px; } .text-content { font-size: 15px; } }
+
+        /* 전문가 상담 섹션 스타일 */
+        .consult-section { 
+          margin-top: 20px; 
+          padding: 30px; 
+          background: #f1f5f9; 
+          border-radius: 24px; 
+          text-align: center;
+          border: 1px solid #e2e8f0;
+        }
+        .consult-title { font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 10px; }
+        .consult-desc { font-size: 14px; color: #64748b; margin-bottom: 20px; }
+        .consult-btns { display: flex; gap: 10px; justify-content: center; }
+        .consult-btns button { 
+          flex: 1; 
+          max-width: 200px;
+          padding: 14px; 
+          border-radius: 12px; 
+          border: none; 
+          font-weight: 700; 
+          font-size: 14px;
+          cursor: pointer; 
+          transition: 0.2s;
+        }
+        .btn-kakao { background: #fae100; color: #3c1e1e; }
+        .btn-telegram { background: #0088cc; color: #fff; }
+        .consult-btns button:hover { opacity: 0.8; transform: translateY(-2px); }
+
+        @media (max-width: 600px) { 
+          .bubble { padding: 20px; } 
+          .text-content { font-size: 15px; } 
+          .consult-btns { flex-direction: column; align-items: center; }
+          .consult-btns button { max-width: 100%; width: 100%; }
+        }
       `}</style>
     </div>
   );
