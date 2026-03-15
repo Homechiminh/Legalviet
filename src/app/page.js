@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react'; // useRef 추가됨
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
@@ -14,6 +14,7 @@ import Footer from '@/components/Footer';
 
 export default function LegalVietPage() {
   const router = useRouter();
+  const messagesEndRef = useRef(null); // [추가] 자동 스크롤을 위한 참조 지점
   
   // --- [상태 관리] ---
   const [content, setContent] = useState('');
@@ -25,6 +26,11 @@ export default function LegalVietPage() {
   const [lang, setLang] = useState('ko');
   const [user, setUser] = useState(null);
   const [userName, setUserName] = useState('');
+
+  // [추가] 스크롤을 최하단으로 내리는 함수
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   // --- [초기 로드: 언어, 유저, 히스토리] ---
   useEffect(() => {
@@ -67,6 +73,13 @@ export default function LegalVietPage() {
     };
     checkUser();
   }, []);
+
+  // [추가] 채팅 내역이 업데이트될 때마다 자동으로 스크롤 이동
+  useEffect(() => {
+    if (chatHistory.length > 0) {
+      scrollToBottom();
+    }
+  }, [chatHistory]);
 
   // --- [로딩 애니메이션 컨트롤] ---
   useEffect(() => {
@@ -189,7 +202,6 @@ export default function LegalVietPage() {
         <div className="responsive-grid">
           
           <main className="chat-section">
-            {/* [재배치] 파트너 배너를 타이틀 아래로 이동 */}
             <header className="page-intro">
               <h1 className="brand-title">LegalViet</h1>
               <p className="brand-subtitle">{currentT.subtitle}</p>
@@ -217,17 +229,22 @@ export default function LegalVietPage() {
               }}
             />
 
-            {/* 4. 입력창 부품 */}
-            <AnalysisForm 
-              content={content}
-              setContent={setContent}
-              file={file}
-              setFile={setFile}
-              loading={loading}
-              loadingStep={loadingStep}
-              lang={lang}
-              onSubmit={() => performAnalysis()}
-            />
+            {/* [추가] 자동 스크롤 참조 지점 */}
+            <div ref={messagesEndRef} />
+
+            {/* 4. 입력창 부품 (sticky 영역으로 감싸기) */}
+            <div className="sticky-form-area">
+              <AnalysisForm 
+                content={content}
+                setContent={setContent}
+                file={file}
+                setFile={setFile}
+                loading={loading}
+                loadingStep={loadingStep}
+                lang={lang}
+                onSubmit={() => performAnalysis()}
+              />
+            </div>
           </main>
 
           {/* 5. 사이드바 부품 */}
@@ -265,13 +282,19 @@ export default function LegalVietPage() {
 
       {/* --- [공통 레이아웃 스타일] --- */}
       <style jsx>{`
-        .layout-root { min-height: 100vh; display: flex; flex-direction: column; background: #f8fafc; }
+        .layout-root { 
+          min-height: 100vh; 
+          display: flex; 
+          flex-direction: column; 
+          background: #f8fafc; 
+          padding-bottom: 50px; /* 하단 여백 추가 */
+        }
         .main-container { flex-grow: 1; width: 100%; max-width: 1200px; margin: 40px auto; padding: 0 20px; }
         .responsive-grid { display: grid; grid-template-columns: 1fr 350px; gap: 30px; }
         
         .page-intro { margin-bottom: 30px; }
         .brand-title { font-size: 36px; font-weight: 800; color: #0f172a; margin-bottom: 8px; }
-        .brand-subtitle { font-size: 18px; color: #64748b; margin-bottom: 25px; } /* 배너와의 간격을 위해 margin-bottom 추가 */
+        .brand-subtitle { font-size: 18px; color: #64748b; margin-bottom: 25px; }
 
         .banner-wrapper { 
           margin-top: 10px;
@@ -279,6 +302,14 @@ export default function LegalVietPage() {
           overflow: hidden;
           background: #fff;
           border: 1px solid #e2e8f0;
+        }
+
+        /* [추가] 입력창 하단 고정 스타일 */
+        .sticky-form-area {
+          position: sticky;
+          bottom: 20px;
+          z-index: 100;
+          margin-top: 40px;
         }
 
         .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; }
@@ -293,6 +324,7 @@ export default function LegalVietPage() {
           .responsive-grid { grid-template-columns: 1fr; }
           .main-container { margin: 20px auto; }
           .chat-section { order: 1; }
+          .sticky-form-area { bottom: 10px; }
         }
       `}</style>
     </div>
