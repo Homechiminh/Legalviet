@@ -243,7 +243,7 @@ export default function MyPage() {
 function UserDashboard({ lang, profile }) {
   const [requesting, setRequesting] = useState(false);
   const handleConsultationRequest = async (type) => {
-    const KAKAO_URL = "https://pf.kakao.com/...";
+    const KAKAO_URL = "https://open.kakao.com/o/sUEA1yfd";
     const TELEGRAM_URL = "https://t.me/Legalviet";
     if (!confirm(lang === 'ko' ? "상담원과 연결하시겠습니까?" : "Connect to consultant?")) return;
     setRequesting(true);
