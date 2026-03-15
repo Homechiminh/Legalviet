@@ -13,7 +13,11 @@ export const t = {
     help1: "• 비즈니스 비자 관련 문의", help2: "• 베트남 법인 설립 서류 검토",
     help3: "• 현지 고용 계약서 분석", help4: "• 부동산 매매 계약 주의사항",
     footerDesc: "LegalViet은 베트남 비즈니스 성공을 위한 AI 분석 파트너입니다.",
-    copyright: "© 2026 LegalViet. All rights reserved."
+    copyright: "© 2026 LegalViet. All rights reserved.",
+    // 모달 텍스트 추가
+    modalTitle: "무료 체험 완료",
+    modalBtn: "구독 문의 (카카오톡)",
+    modalClose: "닫기"
   },
   en: {
     subtitle: "Vietnam Legal & Admin Analysis Support",
@@ -29,6 +33,10 @@ export const t = {
     help1: "• Business Visa Inquiries", help2: "• Company Incorporation Review",
     help3: "• Employment Contract Analysis", help4: "• Real Estate Purchase Notices",
     footerDesc: "LegalViet is your AI partner for business in Vietnam.",
-    copyright: "© 2026 LegalViet. All rights reserved."
+    copyright: "© 2026 LegalViet. All rights reserved.",
+    // 모달 텍스트 추가
+    modalTitle: "Trial Completed",
+    modalBtn: "Inquiry (KakaoTalk)",
+    modalClose: "Close"
   }
 };
