@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 // 분리된 컴포넌트들 임포트
 import { t } from '@/components/Translations';
 import Navbar from '@/components/Navbar';
+import PartnerBanner from '@/components/PartnerBanner'; // 배너 추가
 import ChatList from '@/components/ChatList';
 import AnalysisForm from '@/components/AnalysisForm';
 import Sidebar from '@/components/Sidebar';
@@ -38,7 +39,6 @@ export default function LegalVietPage() {
         if (session) {
           setUser(session.user);
           
-          // 프로필에서 이름 가져오기
           const { data: profile } = await supabase
             .from('profiles')
             .select('name')
@@ -47,7 +47,6 @@ export default function LegalVietPage() {
             
           if (profile?.name) setUserName(profile.name);
 
-          // 기존 분석 내역 로드
           const { data: cases } = await supabase
             .from('legal_cases')
             .select('*')
@@ -164,7 +163,6 @@ export default function LegalVietPage() {
     }
   };
 
-  // 안전하게 번역 데이터를 가져오기 위한 상수
   const currentT = t[lang] || t['ko'];
 
   return (
@@ -185,6 +183,9 @@ export default function LegalVietPage() {
         onMyPage={() => router.push('/mypage')}
         onLogin={() => router.push('/auth/login')}
       />
+
+      {/* 1-2. 파트너 로펌 배너 (Navbar 바로 아래 배치) */}
+      <PartnerBanner lang={lang} />
 
       {/* 2. 메인 영역 */}
       <div className="main-container">
@@ -237,7 +238,7 @@ export default function LegalVietPage() {
       {/* 6. 푸터 부품 */}
       <Footer lang={lang} />
 
-      {/* 7. 구독 안내 모달 [수정된 부분] */}
+      {/* 7. 구독 안내 모달 */}
       {showSubscriptionModal && (
         <div className="modal-overlay">
           <div className="modal-box">
