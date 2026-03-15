@@ -120,7 +120,6 @@ export default function LegalVietPage() {
     let fileUrl = null;
 
     try {
-      // 1. 파일 업로드 처리
       if (file && !isDoc) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${userId}_${Date.now()}.${fileExt}`;
@@ -129,14 +128,12 @@ export default function LegalVietPage() {
         fileUrl = publicUrl;
       }
 
-      // 2. 유저 타입 확인
       const { data: profile } = await supabase.from('profiles').select('user_type').eq('id', userId).maybeSingle();
 
       if (!isDoc) {
         setChatHistory(prev => [...prev, { role: 'user', text: promptText }]);
       }
 
-      // 3. AI API 호출
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -161,11 +158,14 @@ export default function LegalVietPage() {
         if (!isDoc) { setContent(''); setFile(null); }
       }
     } catch (error) {
-      alert(lang === 'ko' ? '분석 중 에러가 발생했습니다.' : 'Error during analysis.');
+      alert((t[lang] || t['ko']).startAnalysis + ' 에러');
     } finally {
       setLoading(false);
     }
   };
+
+  // 안전하게 번역 데이터를 가져오기 위한 상수
+  const currentT = t[lang] || t['ko'];
 
   return (
     <div className="layout-root">
@@ -193,7 +193,7 @@ export default function LegalVietPage() {
           <main className="chat-section">
             <header className="page-intro">
               <h1 className="brand-title">LegalViet</h1>
-              <p className="brand-subtitle">{t[lang].subtitle}</p>
+              <p className="brand-subtitle">{currentT.subtitle}</p>
             </header>
 
             {/* 3. 채팅 내역 부품 */}
@@ -237,23 +237,23 @@ export default function LegalVietPage() {
       {/* 6. 푸터 부품 */}
       <Footer lang={lang} />
 
-      {/* 7. 구독 안내 모달 */}
+      {/* 7. 구독 안내 모달 [수정된 부분] */}
       {showSubscriptionModal && (
         <div className="modal-overlay">
           <div className="modal-box">
             <div className="modal-icon">🚀</div>
-            <h2 className="modal-title">{t[lang].modalTitle}</h2>
+            <h2 className="modal-title">{currentT.modalTitle}</h2>
             <button 
               onClick={() => window.open('https://pf.kakao.com/...', '_blank')} 
               className="kakao-btn"
             >
-              {t[lang].modalBtn}
+              {currentT.modalBtn}
             </button>
             <button 
               onClick={() => setShowSubscriptionModal(false)} 
               className="close-btn"
             >
-              {t[lang].modalClose}
+              {currentT.modalClose}
             </button>
           </div>
         </div>
@@ -277,7 +277,6 @@ export default function LegalVietPage() {
         .kakao-btn:hover { background: #b91c1c; }
         .close-btn { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 14px; }
 
-        /* 모바일 반응형 */
         @media (max-width: 900px) {
           .responsive-grid { grid-template-columns: 1fr; }
           .main-container { margin: 20px auto; }
