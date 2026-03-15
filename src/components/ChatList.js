@@ -1,10 +1,12 @@
 import { t } from './Translations';
 
-export default function ChatList({ history, lang, onExport, onCopy, onMakeDoc }) {
+export default function ChatList({ history, lang, loading, onExport, onCopy, onMakeDoc }) {
+  const currentT = t[lang] || t['ko'];
+
   if (history.length === 0) {
     return (
       <div className="empty">
-        <p>{t[lang].emptyHistory}</p>
+        <p>{currentT.emptyHistory}</p>
         <style jsx>{` .empty { padding: 80px 0; text-align: center; background: #fff; border-radius: 24px; border: 2px dashed #e2e8f0; color: #94a3b8; } `}</style>
       </div>
     );
@@ -24,7 +26,7 @@ export default function ChatList({ history, lang, onExport, onCopy, onMakeDoc })
           <div className="bubble-head">
             <div className={`icon ${chat.role}`}>{chat.role === 'user' ? 'U' : 'L'}</div>
             <span className="label">
-              {chat.role === 'user' ? t[lang].roleUser : (chat.role === 'document' ? t[lang].roleDoc : t[lang].roleAI)}
+              {chat.role === 'user' ? currentT.roleUser : (chat.role === 'document' ? currentT.roleDoc : currentT.roleAI)}
             </span>
           </div>
           <div className="text-content">{chat.text}</div>
@@ -33,17 +35,24 @@ export default function ChatList({ history, lang, onExport, onCopy, onMakeDoc })
             <div className="action-row">
               <button onClick={() => onExport('word', chat.text)} className="btn-word">Word</button>
               <button onClick={() => onExport('excel', chat.text)} className="btn-excel">Excel</button>
-              <button onClick={() => onCopy(chat.text)} className="btn-copy">{t[lang].copy}</button>
+              <button onClick={() => onCopy(chat.text)} className="btn-copy">{currentT.copy}</button>
             </div>
           )}
 
+          {/* 모델의 마지막 답변 하단에 서류 작성 버튼 배치 (로딩 상태 적용) */}
           {chat.role === 'model' && index === history.length - 1 && (
-            <button onClick={() => onMakeDoc(chat.text)} className="make-doc-btn">{t[lang].makeDoc}</button>
+            <button 
+              onClick={() => onMakeDoc(chat.text)} 
+              className={`make-doc-btn ${loading ? 'is-loading' : ''}`}
+              disabled={loading}
+            >
+              {loading ? currentT.step2 : currentT.makeDoc}
+            </button>
           )}
         </div>
       ))}
 
-      {/* [추가] 분석 완료 후 전문가 직접 상담 섹션 */}
+      {/* 분석 완료 후 전문가 직접 상담 섹션 */}
       <div className="consult-section">
         <h3 className="consult-title">
           {lang === 'ko' ? '⚖️ 전문가 추가 검토 요청' : '⚖️ Request Expert Review'}
@@ -71,9 +80,30 @@ export default function ChatList({ history, lang, onExport, onCopy, onMakeDoc })
         .action-row { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
         .action-row button { padding: 8px 16px; border: none; border-radius: 8px; color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; }
         .btn-word { background: #2b579a; } .btn-excel { background: #217346; } .btn-copy { background: #e2e8f0 !important; color: #0f172a !important; }
-        .make-doc-btn { width: 100%; margin-top: 20px; padding: 14px; background: #da251d; color: #fff; border: none; border-radius: 12px; font-weight: 800; cursor: pointer; }
+        
+        .make-doc-btn { 
+          width: 100%; 
+          margin-top: 20px; 
+          padding: 16px; 
+          background: #da251d; 
+          color: #fff; 
+          border: none; 
+          border-radius: 12px; 
+          font-weight: 800; 
+          cursor: pointer; 
+          transition: 0.3s;
+        }
+        .make-doc-btn.is-loading {
+          background: #94a3b8;
+          cursor: not-allowed;
+          animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+          0% { opacity: 1; }
+          50% { opacity: 0.7; }
+          100% { opacity: 1; }
+        }
 
-        /* 전문가 상담 섹션 스타일 */
         .consult-section { 
           margin-top: 20px; 
           padding: 30px; 
