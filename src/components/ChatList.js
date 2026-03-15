@@ -12,7 +12,7 @@ export default function ChatList({ history, lang, onExport, onCopy, onMakeDoc })
 
   // 상담 링크 클릭 핸들러 (사장님 직통)
   const handleConsultantClick = (type) => {
-    const KAKAO_URL = "https://pf.kakao.com/..."; // 사장님 카톡 링크
+    const KAKAO_URL = "https://open.kakao.com/o/sUEA1yfd"; // 사장님 카톡 링크
     const TELEGRAM_URL = "https://t.me/Legalviet"; // 사장님 텔레그램 링크
     window.open(type === 'kakao' ? KAKAO_URL : TELEGRAM_URL, '_blank');
   };
