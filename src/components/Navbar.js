@@ -1,6 +1,6 @@
 import { t } from './Translations';
 
-export default function Navbar({ lang, setLang, user, userName, onLogout, onMyPage, onLogin }) {
+export default function Navbar({ lang, setLang, user, userName, onLogout, onMyPage, onLogin, onSignUp }) {
   // [보정] lang이 없거나 Translations에 해당 키가 없을 경우를 대비한 안전장치
   const currentT = t[lang] || t['ko'];
 
@@ -21,18 +21,24 @@ export default function Navbar({ lang, setLang, user, userName, onLogout, onMyPa
         {/* 유저 상태에 따른 버튼 */}
         {user ? (
           <div className="user-area">
-            <span className="user-name">{userName || (lang === 'en' ? 'User' : '사용자')}님</span>
+            <span className="user-name"><strong>{userName || (lang === 'en' ? 'User' : '사용자')}</strong>님</span>
             <button onClick={onLogout} className="logout-btn">
               {currentT.logout}
             </button>
           </div>
         ) : (
-          <button onClick={onLogin} className="login-btn">
-            {currentT.login}
-          </button>
+          /* [복구] 비로그인 시 로그인 + 회원가입 버튼 노출 */
+          <div className="auth-area">
+            <button onClick={onLogin} className="login-btn">
+              {currentT.login}
+            </button>
+            <button onClick={onSignUp} className="signup-btn">
+              {currentT.signup}
+            </button>
+          </div>
         )}
 
-        {/* 마이페이지 버튼 - Translations의 문구를 사용하도록 수정 */}
+        {/* 마이페이지 버튼 - 상위 page.js의 alert 로직을 타게 됨 */}
         <button onClick={onMyPage} className="mypage-btn">
           {currentT.mypage}
         </button>
@@ -91,7 +97,7 @@ export default function Navbar({ lang, setLang, user, userName, onLogout, onMyPa
           cursor: pointer;
         }
 
-        .user-area { 
+        .user-area, .auth-area { 
           display: flex; 
           align-items: center; 
           gap: 12px; 
@@ -124,9 +130,22 @@ export default function Navbar({ lang, setLang, user, userName, onLogout, onMyPa
           transition: 0.2s;
         }
 
+        /* [추가] 회원가입 버튼 스타일 */
+        .signup-btn {
+          font-size: 14px;
+          font-weight: 600;
+          color: #0f172a;
+          background: #fff;
+          border: 1px solid #0f172a;
+          padding: 9px 20px;
+          border-radius: 10px;
+          cursor: pointer;
+          transition: 0.2s;
+        }
+
         .mypage-btn { 
-          background: none; 
-          border: 1px solid #0f172a; 
+          background: #f8fafc; 
+          border: 1px solid #e2e8f0; 
           padding: 8px 18px; 
           border-radius: 10px; 
           font-size: 14px; 
@@ -135,7 +154,7 @@ export default function Navbar({ lang, setLang, user, userName, onLogout, onMyPa
           transition: 0.2s;
         }
 
-        .login-btn:hover, .mypage-btn:hover {
+        .login-btn:hover, .signup-btn:hover, .mypage-btn:hover {
           opacity: 0.8;
           transform: translateY(-1px);
         }
@@ -143,7 +162,7 @@ export default function Navbar({ lang, setLang, user, userName, onLogout, onMyPa
         /* 모바일 대응 */
         @media (max-width: 768px) {
           .nav { padding: 0 20px; }
-          .user-name, .logo-text { display: none; } /* 좁은 화면에서 텍스트 숨김 */
+          .user-name, .logo-text, .signup-btn { display: none; } /* 좁은 화면에서 덜 중요한 요소 숨김 */
           .logo-box { padding: 4px 8px; }
         }
       `}</style>
