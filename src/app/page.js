@@ -197,8 +197,16 @@ export default function LegalVietPage() {
           await supabase.auth.signOut();
           window.location.reload();
         }}
-        onMyPage={() => router.push('/mypage')}
         onLogin={() => router.push('/auth/login')}
+        onSignUp={() => router.push('/auth/signup')}
+        onMyPage={() => {
+          if (!user) {
+            alert(lang === 'ko' ? '로그인이 필요한 서비스입니다.' : 'Login is required.');
+            router.push('/auth/login');
+          } else {
+            router.push('/mypage');
+          }
+        }}
       />
 
       <div className="main-container">
@@ -206,13 +214,13 @@ export default function LegalVietPage() {
           <main className="chat-section">
             <header className="page-intro">
               <h1 className="brand-title">LegalViet</h1>
-              {/* [추가됨] 요청하신 진화하는 플랫폼 멘트 */}
               <div className="brand-desc-group">
                 <p className="brand-subtitle">{currentT.subtitle}</p>
+                {/* [수정됨] '플랫폼'을 '툴입니다'로 변경 */}
                 <p className="brand-evolution-text">
                   {lang === 'ko' 
-                    ? "실시간으로 적립되는 유저들의 문서/행정/법률 데이터를 기반으로 진화하는 플랫폼" 
-                    : "An evolving platform powered by real-time user document, administrative, and legal data."}
+                    ? "실시간으로 적립되는 유저들의 문서/행정/법률 데이터를 기반으로 진화하는 툴입니다" 
+                    : "An evolving tool powered by real-time user document, administrative, and legal data."}
                 </p>
               </div>
             </header>
@@ -236,7 +244,6 @@ export default function LegalVietPage() {
 
             <div ref={messagesEndRef} />
 
-            {/* [재배치] ChatList 밑으로 이동된 파트너 배너 */}
             <div className="bottom-banner-wrapper">
               <PartnerBanner lang={lang} />
             </div>
@@ -285,7 +292,6 @@ export default function LegalVietPage() {
         .brand-desc-group { display: flex; flex-direction: column; gap: 6px; }
         .brand-subtitle { font-size: 18px; color: #475569; font-weight: 600; }
         
-        /* [추가됨] 진화하는 플랫폼 멘트 스타일 */
         .brand-evolution-text { 
           font-size: 14px; 
           color: #94a3b8; 
@@ -294,7 +300,6 @@ export default function LegalVietPage() {
           max-width: 600px;
         }
 
-        /* [재배치] 하단 배너 스타일 */
         .bottom-banner-wrapper { 
           margin: 40px 0;
           border-radius: 24px;
