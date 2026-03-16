@@ -8,7 +8,7 @@ export const t = {
     makeDoc: "🇻🇳 베트남어 서류 만들기", placeholder: "분석이 필요한 내용을 자세히 적어주세요...",
     upload: "📁 파일 업로드", startAnalysis: "분석 시작하기",
     step0: "⚖️ 조회 중...", step1: "🔍 분석 중...", step2: "📝 작성 중...",
-    premiumTitle: "Premium Service", premiumDesc: "무제한 분석과 전문 서류 양식 저장 기능",
+    premiumTitle: "Premium Service", premiumDesc: "무제한 분석과 베트남어 파일 출력 기능",
     premiumBtn: "멤버십 업그레이드", helpTitle: "💡 도움말",
     help1: "• 비즈니스 비자 관련 문의", help2: "• 베트남 법인 설립 서류 검토",
     help3: "• 현지 고용 계약서 분석", help4: "• 부동산 매매 계약 주의사항",
