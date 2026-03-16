@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from 'react'; // useRef 추가됨
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
@@ -14,7 +14,7 @@ import Footer from '@/components/Footer';
 
 export default function LegalVietPage() {
   const router = useRouter();
-  const messagesEndRef = useRef(null); // [추가] 자동 스크롤을 위한 참조 지점
+  const messagesEndRef = useRef(null); // 자동 스크롤용 Ref
   
   // --- [상태 관리] ---
   const [content, setContent] = useState('');
@@ -27,7 +27,7 @@ export default function LegalVietPage() {
   const [user, setUser] = useState(null);
   const [userName, setUserName] = useState('');
 
-  // [추가] 스크롤을 최하단으로 내리는 함수
+  // 스크롤 최하단 이동 함수
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -44,13 +44,11 @@ export default function LegalVietPage() {
         
         if (session) {
           setUser(session.user);
-          
           const { data: profile } = await supabase
             .from('profiles')
             .select('name')
             .eq('id', session.user.id)
             .maybeSingle();
-            
           if (profile?.name) setUserName(profile.name);
 
           const { data: cases } = await supabase
@@ -67,14 +65,12 @@ export default function LegalVietPage() {
             setChatHistory(history);
           }
         }
-      } catch (err) {
-        console.error("User check error:", err);
-      }
+      } catch (err) { console.error("User check error:", err); }
     };
     checkUser();
   }, []);
 
-  // [추가] 채팅 내역이 업데이트될 때마다 자동으로 스크롤 이동
+  // 채팅 내역 업데이트 시 자동 스크롤 실행
   useEffect(() => {
     if (chatHistory.length > 0) {
       scrollToBottom();
@@ -88,9 +84,7 @@ export default function LegalVietPage() {
       interval = setInterval(() => {
         setLoadingStep((prev) => (prev + 1) % 3);
       }, 3000);
-    } else {
-      setLoadingStep(0);
-    }
+    } else { setLoadingStep(0); }
     return () => clearInterval(interval);
   }, [loading]);
 
@@ -120,7 +114,7 @@ export default function LegalVietPage() {
     }
   };
 
-  // --- [핵심: 분석 실행 로직] ---
+  // --- [핵심: 분석 실행 및 리드 저장 로직] ---
   const performAnalysis = async (promptText = content, isDoc = false) => {
     if (loading || (!isDoc && !promptText.trim())) return;
     
@@ -167,6 +161,17 @@ export default function LegalVietPage() {
         if (!isDoc) setChatHistory(prev => prev.slice(0, -1));
       } else if (response.ok) {
         setChatHistory(prev => [...prev, { role: isDoc ? 'document' : 'model', text: data.analysis }]);
+        
+        if (!isDoc) {
+          await supabase.from('consultation_leads').insert([{
+            user_id: userId,
+            user_name: userName || '익명 고객',
+            contact_info: user?.email || '비공개',
+            theme: promptText.substring(0, 20) + '...',
+            summary: data.analysis.substring(0, 100) + '...',
+          }]);
+        }
+
         if (!isDoc) { setContent(''); setFile(null); }
       }
     } catch (error) {
@@ -180,7 +185,6 @@ export default function LegalVietPage() {
 
   return (
     <div className="layout-root">
-      {/* 1. 상단바 부품 */}
       <Navbar 
         lang={lang} 
         setLang={(newLang) => {
@@ -197,21 +201,22 @@ export default function LegalVietPage() {
         onLogin={() => router.push('/auth/login')}
       />
 
-      {/* 2. 메인 영역 */}
       <div className="main-container">
         <div className="responsive-grid">
-          
           <main className="chat-section">
             <header className="page-intro">
               <h1 className="brand-title">LegalViet</h1>
-              <p className="brand-subtitle">{currentT.subtitle}</p>
-              
-              <div className="banner-wrapper">
-                <PartnerBanner lang={lang} />
+              {/* [추가됨] 요청하신 진화하는 플랫폼 멘트 */}
+              <div className="brand-desc-group">
+                <p className="brand-subtitle">{currentT.subtitle}</p>
+                <p className="brand-evolution-text">
+                  {lang === 'ko' 
+                    ? "실시간으로 적립되는 유저들의 문서/행정/법률 데이터를 기반으로 진화하는 플랫폼" 
+                    : "An evolving platform powered by real-time user document, administrative, and legal data."}
+                </p>
               </div>
             </header>
 
-            {/* 3. 채팅 내역 부품 */}
             <ChatList 
               history={chatHistory} 
               lang={lang} 
@@ -229,10 +234,13 @@ export default function LegalVietPage() {
               }}
             />
 
-            {/* [추가] 자동 스크롤 참조 지점 */}
             <div ref={messagesEndRef} />
 
-            {/* 4. 입력창 부품 (sticky 영역으로 감싸기) */}
+            {/* [재배치] ChatList 밑으로 이동된 파트너 배너 */}
+            <div className="bottom-banner-wrapper">
+              <PartnerBanner lang={lang} />
+            </div>
+
             <div className="sticky-form-area">
               <AnalysisForm 
                 content={content}
@@ -247,64 +255,55 @@ export default function LegalVietPage() {
             </div>
           </main>
 
-          {/* 5. 사이드바 부품 */}
-          <Sidebar 
-            lang={lang} 
-            onUpgrade={() => setShowSubscriptionModal(true)} 
-          />
+          <Sidebar lang={lang} onUpgrade={() => setShowSubscriptionModal(true)} />
         </div>
       </div>
 
-      {/* 6. 푸터 부품 */}
       <Footer lang={lang} />
 
-      {/* 7. 구독 안내 모달 */}
       {showSubscriptionModal && (
         <div className="modal-overlay">
           <div className="modal-box">
             <div className="modal-icon">🚀</div>
             <h2 className="modal-title">{currentT.modalTitle}</h2>
-            <button 
-              onClick={() => window.open('https://pf.kakao.com/...', '_blank')} 
-              className="kakao-btn"
-            >
-              {currentT.modalBtn}
-            </button>
-            <button 
-              onClick={() => setShowSubscriptionModal(false)} 
-              className="close-btn"
-            >
-              {currentT.modalClose}
-            </button>
+            <button onClick={() => window.open('https://pf.kakao.com/...', '_blank')} className="kakao-btn">{currentT.modalBtn}</button>
+            <button onClick={() => setShowSubscriptionModal(false)} className="close-btn">{currentT.modalClose}</button>
           </div>
         </div>
       )}
 
-      {/* --- [공통 레이아웃 스타일] --- */}
       <style jsx>{`
         .layout-root { 
-          min-height: 100vh; 
-          display: flex; 
-          flex-direction: column; 
-          background: #f8fafc; 
-          padding-bottom: 50px; /* 하단 여백 추가 */
+          min-height: 100vh; display: flex; flex-direction: column; background: #f8fafc; 
+          padding-bottom: 60px;
         }
         .main-container { flex-grow: 1; width: 100%; max-width: 1200px; margin: 40px auto; padding: 0 20px; }
         .responsive-grid { display: grid; grid-template-columns: 1fr 350px; gap: 30px; }
         
-        .page-intro { margin-bottom: 30px; }
-        .brand-title { font-size: 36px; font-weight: 800; color: #0f172a; margin-bottom: 8px; }
-        .brand-subtitle { font-size: 18px; color: #64748b; margin-bottom: 25px; }
+        .page-intro { margin-bottom: 40px; }
+        .brand-title { font-size: 42px; font-weight: 900; color: #0f172a; margin-bottom: 12px; letter-spacing: -1px; }
+        .brand-desc-group { display: flex; flex-direction: column; gap: 6px; }
+        .brand-subtitle { font-size: 18px; color: #475569; font-weight: 600; }
+        
+        /* [추가됨] 진화하는 플랫폼 멘트 스타일 */
+        .brand-evolution-text { 
+          font-size: 14px; 
+          color: #94a3b8; 
+          font-weight: 500; 
+          line-height: 1.5;
+          max-width: 600px;
+        }
 
-        .banner-wrapper { 
-          margin-top: 10px;
-          border-radius: 20px;
+        /* [재배치] 하단 배너 스타일 */
+        .bottom-banner-wrapper { 
+          margin: 40px 0;
+          border-radius: 24px;
           overflow: hidden;
           background: #fff;
           border: 1px solid #e2e8f0;
+          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
         }
 
-        /* [추가] 입력창 하단 고정 스타일 */
         .sticky-form-area {
           position: sticky;
           bottom: 20px;
@@ -313,7 +312,7 @@ export default function LegalVietPage() {
         }
 
         .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-        .modal-box { background: white; padding: 40px; border-radius: 24px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
+        .modal-box { background: white; padding: 40px; border-radius: 24px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.25); }
         .modal-icon { font-size: 40px; margin-bottom: 20px; }
         .modal-title { font-size: 22px; font-weight: 800; color: #0f172a; margin-bottom: 20px; }
         .kakao-btn { width: 100%; padding: 14px; background: #da251d; color: #fff; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; margin-bottom: 12px; transition: 0.2s; }
@@ -325,6 +324,8 @@ export default function LegalVietPage() {
           .main-container { margin: 20px auto; }
           .chat-section { order: 1; }
           .sticky-form-area { bottom: 10px; }
+          .brand-title { font-size: 32px; }
+          .bottom-banner-wrapper { margin: 30px 0; }
         }
       `}</style>
     </div>
