@@ -16,11 +16,10 @@ export default function Sidebar({ lang, onUpgrade }) {
           </button>
         </div>
 
-        {/* 도움말 카드 - 화이트 배경 */}
+        {/* 안내 카드 - 텍스트 가이드 역할 */}
         <div className="card light">
           <h3 className="card-title-navy">{currentT.helpTitle}</h3>
           <ul className="help-list">
-            {/* Translations.js에 help1~4가 있어야 나타납니다 */}
             <li>{currentT.help1}</li>
             <li>{currentT.help2}</li>
             <li>{currentT.help3}</li>
@@ -45,7 +44,14 @@ export default function Sidebar({ lang, onUpgrade }) {
         .upgrade-btn:hover { background: #b91c1c; transform: translateY(-2px); }
         
         .help-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
-        .help-list li { font-size: 14px; color: #64748b; font-weight: 500; }
+        .help-list li { 
+          font-size: 14px; 
+          color: #64748b; 
+          font-weight: 500; 
+          line-height: 1.4;
+          /* 클릭 불가능함을 시각적으로 전달 */
+          cursor: default; 
+        }
 
         @media (max-width: 900px) {
           .sticky-box { position: static; margin-top: 20px; }
