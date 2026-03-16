@@ -9,12 +9,13 @@ export const t = {
     upload: "📁 파일 업로드", startAnalysis: "분석 시작하기",
     step0: "⚖️ 조회 중...", step1: "🔍 분석 중...", step2: "📝 작성 중...",
     premiumTitle: "Premium Service", premiumDesc: "무제한 분석과 베트남어 파일 출력 기능",
-    premiumBtn: "멤버십 업그레이드", helpTitle: "💡 도움말",
+    premiumBtn: "멤버십 업그레이드", 
+    // [수정] 도움말 -> 질문하면 유용한 예시
+    helpTitle: "💡 질문하면 유용한 예시",
     help1: "• 비즈니스 비자 관련 문의", help2: "• 베트남 법인 설립 서류 검토",
     help3: "• 현지 고용 계약서 분석", help4: "• 부동산 매매 계약 주의사항",
     footerDesc: "LegalViet은 베트남 비즈니스 성공을 위한 AI 분석 파트너입니다.",
     copyright: "© 2026 LegalViet. All rights reserved.",
-    // 모달 텍스트 추가
     modalTitle: "무료 체험 완료",
     modalBtn: "구독 문의 (카카오톡)",
     modalClose: "닫기"
@@ -29,12 +30,13 @@ export const t = {
     upload: "📁 Upload File", startAnalysis: "Analyze",
     step0: "⚖️ Searching...", step1: "🔍 Analyzing...", step2: "📝 Drafting...",
     premiumTitle: "Premium Service", premiumDesc: "Unlimited analysis and saving features.",
-    premiumBtn: "Upgrade", helpTitle: "💡 Help",
+    premiumBtn: "Upgrade", 
+    // [수정] Help -> Useful examples to ask
+    helpTitle: "💡 Useful examples to ask",
     help1: "• Business Visa Inquiries", help2: "• Company Incorporation Review",
     help3: "• Employment Contract Analysis", help4: "• Real Estate Purchase Notices",
     footerDesc: "LegalViet is your AI partner for business in Vietnam.",
     copyright: "© 2026 LegalViet. All rights reserved.",
-    // 모달 텍스트 추가
     modalTitle: "Trial Completed",
     modalBtn: "Inquiry (KakaoTalk)",
     modalClose: "Close"
