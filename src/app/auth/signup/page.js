@@ -114,8 +114,11 @@ export default function SignupPage() {
             <p className="optional-title" style={{ color: formData.user_type === 'lawfirm' ? '#da251d' : '#0f172a' }}>
               {lang === 'ko' ? '연락처 정보 (선택)' : 'Contact Info (Optional)'}
             </p>
+            {/* [문구 업데이트] 법적 동의 안내 추가 */}
             <p className="optional-desc">
-              {lang === 'ko' ? '* 매칭 지원 시 활용됩니다.' : '* Used for expert matching.'}
+              {lang === 'ko' 
+                ? '로펌 매칭 지원 시 필요한 정보이며, 입력 시 로펌에게 해당 정보를 제공하는 것에 동의하는 것으로 간주합니다.' 
+                : 'This information is required for law firm matching. By providing it, you consent to share this information with law firms.'}
             </p>
             
             <div className="input-group">
@@ -160,7 +163,6 @@ export default function SignupPage() {
         .logo-text { font-size: 24px; font-weight: 900; color: #0f172a; }
         .title { font-size: 24px; font-weight: 800; color: #0f172a; }
 
-        /* 토글 버튼 */
         .type-toggle { display: flex; gap: 10px; margin-bottom: 25px; }
         .type-toggle button { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; background: #fff; color: #64748b; font-weight: 700; cursor: pointer; transition: 0.2s; }
         .active-normal { background: #0f172a !important; color: #fff !important; border-color: #0f172a !important; }
@@ -174,10 +176,18 @@ export default function SignupPage() {
         .input-field { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid #e2e8f0; outline: none; font-size: 16px; background: #f8fafc; transition: 0.2s; }
         .input-field:focus { border-color: #0f172a; background: #fff; box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.05); }
 
-        /* 선택 입력창 박스 */
         .optional-box { background: #f8fafc; padding: 20px; border-radius: 20px; border: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 15px; }
         .optional-title { font-size: 14px; font-weight: 800; }
-        .optional-desc { font-size: 11px; color: #94a3b8; margin-top: -10px; }
+        
+        /* [스타일 수정] 고지 문구 가독성 보정 */
+        .optional-desc { 
+          font-size: 12px; 
+          color: #64748b; 
+          margin-top: -10px; 
+          line-height: 1.5;
+          word-break: keep-all;
+        }
+
         .chat-input-row { display: flex; gap: 8px; }
         .chat-select { width: 110px; border-radius: 12px; border: 1px solid #e2e8f0; padding: 10px; font-size: 13px; outline: none; }
 
@@ -188,7 +198,6 @@ export default function SignupPage() {
         .signup-footer { margin-top: 25px; text-align: center; font-size: 14px; color: #64748b; }
         .login-link { color: #da251d; cursor: pointer; font-weight: 700; margin-left: 5px; text-decoration: underline; }
 
-        /* 🚨 모바일 최적화 🚨 */
         @media (max-width: 480px) {
           .signup-root { padding: 10px; background: #fff; }
           .signup-card { padding: 20px 10px; box-shadow: none; }
