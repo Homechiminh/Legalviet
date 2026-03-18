@@ -126,6 +126,7 @@ export default function LegalVietPage() {
     let fileUrl = null;
 
     try {
+      // 1. 파일 업로드 로직
       if (file && !isDoc) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${userId}_${Date.now()}.${fileExt}`;
@@ -163,12 +164,22 @@ export default function LegalVietPage() {
         setChatHistory(prev => [...prev, { role: isDoc ? 'document' : 'model', text: data.analysis }]);
         
         if (!isDoc) {
+          // [추가] 1. 유저 개인 히스토리(legal_cases)에 파일 주소 포함하여 저장
+          await supabase.from('legal_cases').insert([{
+            user_id: userId,
+            content: promptText,
+            analysis: data.analysis,
+            file_url: fileUrl // 업로드된 파일 URL 저장
+          }]);
+
+          // [추가] 2. 로펌용 잠재 고객 리드에도 파일 주소 포함하여 저장
           await supabase.from('consultation_leads').insert([{
             user_id: userId,
             user_name: userName || '익명 고객',
             contact_info: user?.email || '비공개',
             theme: promptText.substring(0, 20) + '...',
             summary: data.analysis.substring(0, 100) + '...',
+            file_url: fileUrl // 로펌이 나중에 파일을 확인할 수 있도록 저장
           }]);
         }
 
@@ -216,7 +227,6 @@ export default function LegalVietPage() {
               <h1 className="brand-title">LegalViet</h1>
               <div className="brand-desc-group">
                 <p className="brand-subtitle">{currentT.subtitle}</p>
-                {/* [수정됨] '플랫폼'을 '툴입니다'로 변경 */}
                 <p className="brand-evolution-text">
                   {lang === 'ko' 
                     ? "실시간으로 적립되는 유저들의 문서/행정/법률 데이터를 기반으로 진화하는 툴입니다" 
