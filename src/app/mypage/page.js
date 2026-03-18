@@ -190,7 +190,7 @@ export default function MyPage() {
           )}
         </section>
 
-        {/* 3. 히스토리 등 기존 영역 생략 없이 유지 */}
+        {/* 3. 히스토리 - 파일 확인 버튼 추가됨 */}
         <section className="history-section">
           <h3 className="section-title">{lang === 'ko' ? '최근 분석 내역' : 'Recent History'}</h3>
           <div className="history-list">
@@ -198,6 +198,21 @@ export default function MyPage() {
               <div key={item.id} className="history-row" onClick={() => setSelectedCase(item)}>
                 <span className="history-date">{new Date(item.created_at).toLocaleDateString()}</span>
                 <p className="content-preview">{item.content}</p>
+                
+                {/* [추가] 업로드된 파일이 있을 경우 노출되는 아이콘 버튼 */}
+                {item.file_url && (
+                  <button 
+                    className="file-preview-btn" 
+                    title={lang === 'ko' ? '첨부파일 보기' : 'View Attachment'}
+                    onClick={(e) => {
+                      e.stopPropagation(); // 부모 div의 클릭 이벤트(상세보기) 전파 방지
+                      window.open(item.file_url, '_blank');
+                    }}
+                  >
+                    📄
+                  </button>
+                )}
+                
                 <span className="arrow-icon">›</span>
               </div>
             ))}
@@ -215,14 +230,12 @@ export default function MyPage() {
         .user-info-text { flex-grow: 1; }
         .btn-edit-toggle { background: #f1f5f9; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; }
 
-        /* 상태 배지 스타일 */
         .public-status-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
         .status-badge { font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 20px; }
         .status-badge.on { background: #e6fffa; color: #38a169; }
         .status-badge.off { background: #fff5f5; color: #e53e3e; }
         .status-hint { font-size: 11px; color: #94a3b8; }
 
-        /* 토글 스위치 스타일 */
         .toggle-group { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 15px; }
         .toggle-label { font-size: 14px; font-weight: 700; color: #0f172a; }
         .switch { width: 50px; height: 26px; background: #cbd5e1; border-radius: 13px; position: relative; cursor: pointer; transition: 0.3s; }
@@ -238,9 +251,28 @@ export default function MyPage() {
 
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         .title { font-size: 28px; font-weight: 800; }
-        .history-row { display: flex; align-items: center; padding: 18px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
+        .history-row { display: flex; align-items: center; padding: 18px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: 0.2s; }
+        .history-row:hover { background: #fcfcfc; }
         .history-date { font-size: 13px; color: #94a3b8; width: 100px; flex-shrink: 0; }
         .content-preview { flex-grow: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 15px; font-size: 14px; }
+        
+        /* 파일 아이콘 버튼 스타일 */
+        .file-preview-btn {
+          background: #f1f5f9;
+          border: none;
+          border-radius: 6px;
+          padding: 6px 10px;
+          margin-right: 15px;
+          cursor: pointer;
+          font-size: 16px;
+          transition: 0.2s;
+        }
+        .file-preview-btn:hover {
+          background: #e2e8f0;
+          transform: scale(1.1);
+        }
+
+        .arrow-icon { color: #cbd5e1; font-size: 18px; }
       `}</style>
     </div>
   );
