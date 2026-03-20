@@ -11,7 +11,7 @@ export default function PricingPage() {
   const CHECKOUT_URLS = {
     standard_monthly: "#", 
     standard_yearly: "#",
-    partner_monthly: "#",
+    partner_monthly: "#", 
     partner_yearly: "#"
   };
 
@@ -53,8 +53,8 @@ export default function PricingPage() {
       monthlyPrice: '50',
       yearlyPrice: '480',
       features: lang === 'ko' 
-        ? ['유저 연락처 공개 크레딧 20개', '전문가 전용 AI 분석 도구', '파트너 배지 부여', '상담 리드 우선 배정'] 
-        : ['20 Contact Credits', 'Partner AI Tools', 'Partner Badge', 'Priority Lead Allocation'],
+        ? ['유저 연락처 공개 크레딧 10개', '전문가 전용 AI 분석 도구', '파트너 배지 부여', '상담 리드 우선 배정'] 
+        : ['10 Contact Credits', 'Partner AI Tools', 'Partner Badge', 'Priority Lead Allocation'],
       button: lang === 'ko' ? '파트너 가입하기' : 'Join as Partner',
       popular: true
     }
@@ -131,7 +131,6 @@ export default function PricingPage() {
           ))}
         </div>
 
-        {/* [신규] FAQ 섹션 */}
         <section className="faq-section">
           <h2 className="faq-title">Frequently Asked Questions</h2>
           <div className="faq-grid">
