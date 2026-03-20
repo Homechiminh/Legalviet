@@ -17,6 +17,7 @@ export default function PartnerDashboard({ lang, profile, leads, unlockedLeads, 
           </div>
           <div className="credit-status">
             <span className="c-label">{lang === 'ko' ? '잔여 열람권' : 'Remaining Credits'}</span>
+            {/* DB에서 10개로 업데이트된 값이 여기에 자동으로 표시됩니다 */}
             <span className="c-value">{profile.lead_credits || 0}</span>
           </div>
         </div>
@@ -46,16 +47,24 @@ export default function PartnerDashboard({ lang, profile, leads, unlockedLeads, 
                       </div>
                       <div className="data-row">
                         <span className="data-label">📞 {lang === 'ko' ? '연락처' : 'Contact'}:</span>
-                        <span className="data-value highlight">{lead.contact_info}</span>
+                        <span className="data-value highlight">{lead.contact_info || '비공개'}</span>
                       </div>
                       <div className="data-row">
-                        <span className="data-label">💬 Kakao/Tele:</span>
-                        <span className="data-value">{lead.kakao_id || '-'}</span>
+                        {/* [수정] kakao_id를 사장님 DB 필드명인 chat_id로 맞추는 것이 안전합니다 */}
+                        <span className="data-label">💬 {lead.chat_type || 'Messenger'}:</span>
+                        <span className="data-value">{lead.chat_id || lead.kakao_id || '-'}</span>
                       </div>
                     </div>
                   ) : (
-                    <button onClick={() => onUnlock(lead.id)} className="btn-unlock">
-                      {lang === 'ko' ? '🔐 1크레딧으로 고객 정보 열람' : '🔐 Unlock Contact (1 Credit)'}
+                    <button 
+                      onClick={() => onUnlock(lead.id)} 
+                      className="btn-unlock"
+                      disabled={profile.lead_credits <= 0}
+                    >
+                      {profile.lead_credits <= 0 
+                        ? (lang === 'ko' ? '🚫 크레딧 부족' : '🚫 No Credits')
+                        : (lang === 'ko' ? '🔐 1크레딧으로 고객 정보 열람' : '🔐 Unlock Contact (1 Credit)')
+                      }
                     </button>
                   )}
                 </div>
@@ -77,25 +86,27 @@ export default function PartnerDashboard({ lang, profile, leads, unlockedLeads, 
         .c-value { font-size: 24px; font-weight: 900; color: #fbbf24; }
 
         .leads-container { padding: 30px; display: flex; flex-direction: column; gap: 15px; }
-        .lead-card { padding: 20px; border: 1px solid #f1f5f9; border-radius: 20px; transition: 0.3s; }
-        .lead-card.unlocked { border: 2px solid #0f172a; background: #f8fafc; }
+        .lead-card { padding: 25px; border: 1px solid #f1f5f9; border-radius: 24px; transition: 0.3s; background: #fff; }
+        .lead-card.unlocked { border: 2px solid #da251d; background: #fffafb; }
         
         .lead-top { display: flex; justify-content: space-between; margin-bottom: 12px; }
-        .theme-tag { color: #da251d; font-weight: 800; font-size: 13px; }
+        .theme-tag { color: #da251d; font-weight: 800; font-size: 13px; background: #fee2e2; padding: 4px 10px; border-radius: 8px; }
         .time-tag { font-size: 12px; color: #94a3b8; }
-        .lead-summary { font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 20px; }
+        .lead-summary { font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 20px; font-weight: 500; }
 
-        .btn-unlock { width: 100%; padding: 14px; background: #da251d; color: #fff; border: none; border-radius: 14px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-        .btn-unlock:hover { background: #b91c1c; transform: translateY(-2px); }
+        .btn-unlock { width: 100%; padding: 16px; background: #da251d; color: #fff; border: none; border-radius: 16px; font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 15px; }
+        .btn-unlock:hover:not(:disabled) { background: #b91c1c; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(218, 37, 29, 0.3); }
+        .btn-unlock:disabled { background: #cbd5e1; cursor: not-allowed; }
 
-        .unlocked-data { background: #fff; padding: 15px; border-radius: 12px; border: 1px dashed #0f172a; }
-        .data-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+        .unlocked-data { background: #fff; padding: 20px; border-radius: 16px; border: 1px dashed #da251d; }
+        .data-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; align-items: center; }
+        .data-row:last-child { margin-bottom: 0; }
         .data-label { color: #64748b; font-weight: 600; }
         .data-value { color: #0f172a; font-weight: 700; }
-        .data-value.highlight { color: #da251d; font-size: 16px; }
+        .data-value.highlight { color: #da251d; font-size: 18px; text-decoration: underline; text-underline-offset: 4px; }
 
-        .empty-leads { text-align: center; padding: 50px; color: #94a3b8; font-size: 14px; }
+        .empty-leads { text-align: center; padding: 60px; color: #94a3b8; font-size: 15px; font-weight: 500; }
       `}</style>
-    </section>
-  );
+    </div>
+  );             
 }
