@@ -12,12 +12,12 @@ export default function MyPage() {
   const [profile, setProfile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   
-  // 폼 상태 관리 (is_contact_public 추가)
+  // 폼 상태 관리
   const [editData, setEditData] = useState({
     phone: '',
     chat_type: 'kakao',
     chat_id: '',
-    is_contact_public: false // 공개 여부 상태
+    is_contact_public: false 
   });
 
   const [history, setHistory] = useState([]);
@@ -59,6 +59,7 @@ export default function MyPage() {
       const { data: historyData } = await supabase.from('legal_cases').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).range(from, from + ITEMS_PER_PAGE - 1);
       if (historyData) setHistory(historyData);
 
+      // 파트너 또는 관리자일 경우 리드 데이터 로드
       if (profileData?.user_type === 'admin' || profileData?.user_type === 'partner') {
         const { data: leadsData } = await supabase.from('consultation_leads').select('*').order('created_at', { ascending: false }).limit(10);
         if (leadsData) setLeads(leadsData);
@@ -75,7 +76,7 @@ export default function MyPage() {
           phone: editData.phone,
           chat_type: editData.chat_type,
           chat_id: editData.chat_id,
-          is_contact_public: editData.is_contact_public // DB에 저장
+          is_contact_public: editData.is_contact_public 
         })
         .eq('id', profile.id);
 
@@ -91,7 +92,6 @@ export default function MyPage() {
     }
   };
 
-  // [추가] 비밀번호 재설정 메일 발송 함수
   const handlePasswordReset = async () => {
     const confirmMsg = lang === 'ko' 
       ? "비밀번호 재설정 메일을 발송하시겠습니까?" 
@@ -114,14 +114,24 @@ export default function MyPage() {
   };
 
   const handleUnlockLead = async (leadId) => {
-    if (profile.lead_credits <= 0) { alert("열람권이 부족합니다."); return; }
-    if (!confirm("열람권을 사용하시겠습니까?")) return;
+    // 10개로 축소된 크레딧 정책에 따라 잔여 크레딧 확인
+    if (profile.lead_credits <= 0) { 
+      alert(lang === 'ko' ? "잔여 크레딧이 부족합니다. 플랜을 갱신해주세요." : "Not enough credits."); 
+      return; 
+    }
+    
+    if (!confirm(lang === 'ko' ? "크레딧 1개를 사용하여 연락처를 확인하시겠습니까?" : "Use 1 credit to unlock?")) return;
+    
     try {
       const { error } = await supabase.from('profiles').update({ 
         lead_credits: profile.lead_credits - 1,
         unlocked_leads: [...unlockedLeads, leadId]
       }).eq('id', profile.id);
-      if (!error) { setUnlockedLeads(prev => [...prev, leadId]); fetchProfileAndHistory(); }
+      
+      if (!error) { 
+        setUnlockedLeads(prev => [...prev, leadId]); 
+        fetchProfileAndHistory(); 
+      }
     } catch (err) { alert(err.message); }
   };
 
@@ -133,7 +143,6 @@ export default function MyPage() {
         <header className="header">
           <h1 className="title">{lang === 'ko' ? '마이페이지' : 'My Page'}</h1>
           <div className="header-btns">
-            {/* [개선] Home과 Logout 버튼 디자인 분리 */}
             <button onClick={() => router.push('/')} className="btn-header">Home</button>
             <button 
               onClick={async () => { await supabase.auth.signOut(); router.push('/'); }} 
@@ -144,21 +153,26 @@ export default function MyPage() {
           </div>
         </header>
 
-        {/* 1. 파트너 대시보드 */}
+        {/* 1. 파트너 대시보드 (크레딧 10개 기반 데이터 표시) */}
         {(profile?.user_type === 'admin' || profile?.user_type === 'partner') && (
           <PartnerDashboard 
-            lang={lang} profile={profile} leads={leads} 
-            unlockedLeads={unlockedLeads} onUnlock={handleUnlockLead} 
+            lang={lang} 
+            profile={profile} 
+            leads={leads} 
+            unlockedLeads={unlockedLeads} 
+            onUnlock={handleUnlockLead} 
           />
         )}
 
-        {/* 2. 유저 정보 및 공개 ON/OFF 설정 */}
+        {/* 2. 유저 정보 및 설정 */}
         <section className="card user-card">
           <div className="user-top-row">
             <div className="avatar">{profile?.email?.[0].toUpperCase()}</div>
             <div className="user-info-text">
               <p className="u-email">{profile?.email}</p>
-              <p className="u-role">{profile?.user_type === 'partner' ? 'Law Firm Partner' : 'Standard User'}</p>
+              <p className="u-role">
+                {profile?.user_type === 'partner' ? 'Law Firm Partner' : 'Standard User'}
+              </p>
             </div>
             <button onClick={() => setIsEditing(!isEditing)} className="btn-edit-toggle">
               {isEditing ? (lang === 'ko' ? '취소' : 'Cancel') : (lang === 'ko' ? '정보 수정' : 'Edit Info')}
@@ -178,7 +192,6 @@ export default function MyPage() {
 
           {isEditing && (
             <div className="edit-form">
-              {/* 공개/비공개 스위치 */}
               <div className="toggle-group">
                 <label className="toggle-label">{lang === 'ko' ? '로펌 매칭용 연락처 공개' : 'Public for Matching'}</label>
                 <div 
@@ -211,7 +224,6 @@ export default function MyPage() {
                 </div>
               </div>
 
-              {/* [추가] 비밀번호 재설정 버튼 섹션 */}
               <div className="input-group">
                 <label>{lang === 'ko' ? '보안 설정' : 'Security'}</label>
                 <button onClick={handlePasswordReset} className="btn-password-reset">
@@ -263,7 +275,6 @@ export default function MyPage() {
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         .title { font-size: 28px; font-weight: 800; color: #0f172a; }
 
-        /* [개선] 헤더 버튼 스타일 */
         .header-btns { display: flex; gap: 10px; }
         .btn-header { 
           background: #fff; border: 1px solid #e2e8f0; padding: 8px 16px; border-radius: 10px; 
@@ -296,7 +307,6 @@ export default function MyPage() {
         .input-group input, .input-group select { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; outline: none; font-size: 14px; }
         .messenger-row { display: flex; gap: 10px; }
         
-        /* [추가] 비밀번호 재설정 버튼 스타일 */
         .btn-password-reset { 
           width: 100%; padding: 12px; background: #fff; border: 1px solid #e2e8f0; 
           border-radius: 10px; font-weight: 700; color: #64748b; cursor: pointer; transition: 0.2s;
