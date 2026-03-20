@@ -91,6 +91,28 @@ export default function MyPage() {
     }
   };
 
+  // [추가] 비밀번호 재설정 메일 발송 함수
+  const handlePasswordReset = async () => {
+    const confirmMsg = lang === 'ko' 
+      ? "비밀번호 재설정 메일을 발송하시겠습니까?" 
+      : "Send a password reset email to your account?";
+    
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(profile.email, {
+        redirectTo: `${window.location.origin}/auth/update-password`,
+      });
+      if (error) throw error;
+
+      alert(lang === 'ko' 
+        ? "재설정 메일이 발송되었습니다. 편지함을 확인해주세요." 
+        : "Reset email sent. Please check your inbox.");
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
+
   const handleUnlockLead = async (leadId) => {
     if (profile.lead_credits <= 0) { alert("열람권이 부족합니다."); return; }
     if (!confirm("열람권을 사용하시겠습니까?")) return;
@@ -111,8 +133,14 @@ export default function MyPage() {
         <header className="header">
           <h1 className="title">{lang === 'ko' ? '마이페이지' : 'My Page'}</h1>
           <div className="header-btns">
-            <button onClick={() => router.push('/')} className="btn-home">Home</button>
-            <button onClick={async () => { await supabase.auth.signOut(); router.push('/'); }} className="btn-logout">Logout</button>
+            {/* [개선] Home과 Logout 버튼 디자인 분리 */}
+            <button onClick={() => router.push('/')} className="btn-header">Home</button>
+            <button 
+              onClick={async () => { await supabase.auth.signOut(); router.push('/'); }} 
+              className="btn-header logout"
+            >
+              Logout
+            </button>
           </div>
         </header>
 
@@ -183,6 +211,14 @@ export default function MyPage() {
                 </div>
               </div>
 
+              {/* [추가] 비밀번호 재설정 버튼 섹션 */}
+              <div className="input-group">
+                <label>{lang === 'ko' ? '보안 설정' : 'Security'}</label>
+                <button onClick={handlePasswordReset} className="btn-password-reset">
+                  {lang === 'ko' ? '비밀번호 재설정 메일 보내기' : 'Send Password Reset Email'}
+                </button>
+              </div>
+
               <button onClick={handleUpdateProfile} disabled={updateLoading} className="btn-save-profile">
                 {updateLoading ? '...' : (lang === 'ko' ? '설정 저장하기' : 'Save Settings')}
               </button>
@@ -190,7 +226,7 @@ export default function MyPage() {
           )}
         </section>
 
-        {/* 3. 히스토리 - 파일 확인 버튼 추가됨 */}
+        {/* 3. 히스토리 */}
         <section className="history-section">
           <h3 className="section-title">{lang === 'ko' ? '최근 분석 내역' : 'Recent History'}</h3>
           <div className="history-list">
@@ -199,13 +235,12 @@ export default function MyPage() {
                 <span className="history-date">{new Date(item.created_at).toLocaleDateString()}</span>
                 <p className="content-preview">{item.content}</p>
                 
-                {/* [추가] 업로드된 파일이 있을 경우 노출되는 아이콘 버튼 */}
                 {item.file_url && (
                   <button 
                     className="file-preview-btn" 
                     title={lang === 'ko' ? '첨부파일 보기' : 'View Attachment'}
                     onClick={(e) => {
-                      e.stopPropagation(); // 부모 div의 클릭 이벤트(상세보기) 전파 방지
+                      e.stopPropagation();
                       window.open(item.file_url, '_blank');
                     }}
                   >
@@ -221,14 +256,27 @@ export default function MyPage() {
       </div>
 
       <style jsx>{`
-        .mypage-root { min-height: 100vh; background: #f8fafc; padding: 40px 20px; }
+        .mypage-root { min-height: 100vh; background: #f8fafc; padding: 40px 20px; font-family: 'Pretendard', sans-serif; }
         .container { max-width: 850px; margin: 0 auto; }
         .card { background: #fff; padding: 25px; border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; margin-bottom: 15px; }
         
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .title { font-size: 28px; font-weight: 800; color: #0f172a; }
+
+        /* [개선] 헤더 버튼 스타일 */
+        .header-btns { display: flex; gap: 10px; }
+        .btn-header { 
+          background: #fff; border: 1px solid #e2e8f0; padding: 8px 16px; border-radius: 10px; 
+          font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 14px; color: #475569;
+        }
+        .btn-header:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .btn-header.logout { color: #da251d; border-color: #fee2e2; }
+        .btn-header.logout:hover { background: #fff1f0; }
+
         .user-top-row { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
         .avatar { width: 50px; height: 50px; background: #0f172a; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; }
         .user-info-text { flex-grow: 1; }
-        .btn-edit-toggle { background: #f1f5f9; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+        .btn-edit-toggle { background: #f1f5f9; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13px; }
 
         .public-status-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
         .status-badge { font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 20px; }
@@ -244,34 +292,28 @@ export default function MyPage() {
         .switch.active .handle { left: 27px; }
 
         .edit-form { background: #f8fafc; padding: 20px; border-radius: 16px; display: flex; flex-direction: column; gap: 15px; border: 1px solid #f1f5f9; }
-        .input-group label { display: block; font-size: 12px; font-weight: 800; color: #64748b; margin-bottom: 5px; }
-        .input-group input { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; outline: none; }
+        .input-group label { display: block; font-size: 12px; font-weight: 800; color: #64748b; margin-bottom: 5px; margin-left: 4px; }
+        .input-group input, .input-group select { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; outline: none; font-size: 14px; }
         .messenger-row { display: flex; gap: 10px; }
-        .btn-save-profile { background: #0f172a; color: #fff; border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer; }
-
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .title { font-size: 28px; font-weight: 800; }
-        .history-row { display: flex; align-items: center; padding: 18px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: 0.2s; }
-        .history-row:hover { background: #fcfcfc; }
-        .history-date { font-size: 13px; color: #94a3b8; width: 100px; flex-shrink: 0; }
-        .content-preview { flex-grow: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 15px; font-size: 14px; }
         
-        /* 파일 아이콘 버튼 스타일 */
-        .file-preview-btn {
-          background: #f1f5f9;
-          border: none;
-          border-radius: 6px;
-          padding: 6px 10px;
-          margin-right: 15px;
-          cursor: pointer;
-          font-size: 16px;
-          transition: 0.2s;
+        /* [추가] 비밀번호 재설정 버튼 스타일 */
+        .btn-password-reset { 
+          width: 100%; padding: 12px; background: #fff; border: 1px solid #e2e8f0; 
+          border-radius: 10px; font-weight: 700; color: #64748b; cursor: pointer; transition: 0.2s;
         }
-        .file-preview-btn:hover {
-          background: #e2e8f0;
-          transform: scale(1.1);
-        }
+        .btn-password-reset:hover { background: #f1f5f9; color: #0f172a; }
 
+        .btn-save-profile { background: #0f172a; color: #fff; border: none; padding: 14px; border-radius: 12px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+
+        .history-row { display: flex; align-items: center; padding: 18px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: 0.2s; background: #fff; }
+        .history-row:hover { background: #fafafa; }
+        .history-date { font-size: 13px; color: #94a3b8; width: 100px; flex-shrink: 0; }
+        .content-preview { flex-grow: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 15px; font-size: 14px; color: #334155; }
+        
+        .file-preview-btn {
+          background: #f1f5f9; border: none; border-radius: 6px; padding: 6px 10px; margin-right: 15px; cursor: pointer; font-size: 16px; transition: 0.2s;
+        }
+        .file-preview-btn:hover { background: #e2e8f0; transform: scale(1.1); }
         .arrow-icon { color: #cbd5e1; font-size: 18px; }
       `}</style>
     </div>
