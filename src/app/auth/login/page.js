@@ -84,6 +84,16 @@ export default function LoginPage() {
             />
           </div>
 
+          {/* [추가] 비밀번호 찾기 링크 영역 */}
+          <div className="login-helpers">
+            <span 
+              onClick={() => router.push('/auth/reset-password')} 
+              className="forgot-password-link"
+            >
+              {lang === 'ko' ? '비밀번호를 잊으셨나요?' : 'Forgot Password?'}
+            </span>
+          </div>
+
           <button type="submit" disabled={loading} className="submit-btn">
             {loading 
               ? (lang === 'ko' ? '로그인 중...' : 'Logging in...') 
@@ -101,7 +111,6 @@ export default function LoginPage() {
         </footer>
       </div>
 
-      {/* --- 반응형 CSS --- */}
       <style jsx>{`
         .login-root {
           min-height: 100vh;
@@ -200,6 +209,25 @@ export default function LoginPage() {
           box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.05);
         }
 
+        /* 비밀번호 찾기 링크 스타일 */
+        .login-helpers {
+          text-align: right;
+          margin-top: -10px;
+        }
+
+        .forgot-password-link {
+          font-size: 13px;
+          color: #94a3b8;
+          cursor: pointer;
+          font-weight: 500;
+          transition: 0.2s;
+        }
+
+        .forgot-password-link:hover {
+          color: #da251d;
+          text-decoration: underline;
+        }
+
         .submit-btn {
           width: 100%;
           padding: 16px;
@@ -208,7 +236,7 @@ export default function LoginPage() {
           font-weight: 700;
           cursor: pointer;
           font-size: 17px;
-          margin-top: 10px;
+          margin-top: 5px;
           background: #0f172a;
           color: #fff;
           transition: 0.2s;
@@ -240,16 +268,15 @@ export default function LoginPage() {
           text-underline-offset: 4px;
         }
 
-        /* 🚨 모바일 최적화 핵심 쿼리 🚨 */
         @media (max-width: 480px) {
           .login-root {
             padding: 15px;
-            background: #fff; /* 모바일에서는 카드 배경과 통일해서 더 넓어보이게 */
+            background: #fff;
           }
 
           .login-card {
             padding: 30px 10px;
-            box-shadow: none; /* 모바일은 그림자보다 깔끔한 평면 느낌 */
+            box-shadow: none;
             border: none;
           }
 
@@ -258,7 +285,7 @@ export default function LoginPage() {
           }
 
           .input-field {
-            font-size: 16px; /* 아이폰 자동 줌 방지 (16px 이상 권장) */
+            font-size: 16px;
             padding: 14px;
           }
 
