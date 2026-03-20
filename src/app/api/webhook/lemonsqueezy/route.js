@@ -34,11 +34,13 @@ export async function POST(req) {
         .update({
           user_type: isPartner ? 'partner' : 'pro',
           is_subscribed: true,
-          lead_credits: isPartner ? 20 : 0 
+          // 로펌 파트너의 경우 기존 20개에서 10개로 변경 반영
+          lead_credits: isPartner ? 10 : 0 
         })
         .eq('email', userEmail);
 
       if (error) throw error;
+      console.log(`[Success] ${userEmail} 등급 업데이트 완료 (Credits: ${isPartner ? 10 : 0})`);
     }
 
     // --- [케이스 2: 만료 또는 환불] ---
@@ -53,6 +55,7 @@ export async function POST(req) {
         .eq('email', userEmail);
 
       if (error) throw error;
+      console.log(`[Success] ${userEmail} 권한 회수 완료`);
     }
 
     return NextResponse.json({ message: 'Webhook Processed' });
