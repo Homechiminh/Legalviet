@@ -7,7 +7,7 @@ export const metadata = {
   keywords: ["베트남 법률", "베트남 행정", "AI 분석", "LegalViet"],
   verification: {
     // 구글 서치 콘솔에서 받은 'content' 값을 여기에 넣으세요!
-    google: "여기에_인증_코드를_입력하세요",
+    google: "yNptkoGNQXAd5IakRwac1nQcCiB6frmsdmUbjjXqsVw",
   },
   openGraph: {
     title: "LegalViet - AI 기반 베트남 행정 가이드",
